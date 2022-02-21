@@ -1,12 +1,14 @@
 library(tidyverse)
+library(geomtextpath)
+library(ggrepel)
 source("reliability_functions.R")
 
 # Load data
-df <- read_csv("data/2022-01-03_df_processed.csv", col_types = cols()) %>%
+df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
   filter(location != "US")
 
 df <- df %>%
-  filter(quantile %in% c(0.05, 0.5, 0.95),
+  filter(quantile %in% c(0.25, 0.5, 0.75),
          target == "1 wk ahead inc death",
          !model %in% c("USC-SI_kJalpha", "COVIDhub-4_week_ensemble", "COVIDhub_CDC-ensemble"))
 
@@ -19,22 +21,24 @@ scores <- results %>%
   group_by(quantile, model) %>%
   distinct(across(score:pval_ucond))
 
-write.csv(scores, "data/2022-01-03_score_components.csv", row.names=FALSE)
+write.csv(scores, "data/2022-01-03_score_components2.csv", row.names=FALSE)
 
-scores <- read.csv("data/2022-01-03_score_components.csv")
+scores <- read.csv("data/2022-01-03_score_components2.csv")
 
 # adjust model names (to save space)
 scores$quantile <- as.factor(scores$quantile)
 scores$model <- str_replace(scores$model, "COVIDhub-baseline", "Baseline")
 scores$model <- as.character(lapply(strsplit(as.character(scores$model), "-"), '[[', 1))
 scores$model <- str_replace(scores$model, "COVIDhub", "COVIDhub-ensemble")
+scores$model <- as.factor(scores$model)
+scores$model <- fct_relevel(scores$model, "Baseline", "COVIDhub-ensemble", "KITmetricslab")
 
 # define isolines
 iso <- scores %>%
   group_by(quantile) %>%
   summarize(intercept = seq(ceiling(max(dsc)) + first(unc)%%1 - ceiling(min(mcb)), # add decimal part of unc to ensure integer valued scores on isolines
                             -(ceiling(max(mcb))+ first(unc)%%1 - ceiling(min(mcb))), 
-                            by = -round((max(dsc) - min(dsc))/8)), 
+                            by = -round((max(dsc) - min(dsc))/6)), 
             # by = -round((max(mcb)-min(mcb))/(max(dsc)-min(dsc))*(max(dsc) - min(dsc))/4)), 
             # by = -((max(mcb)-min(mcb))/(max(dsc)-min(dsc)))), 
             slope = 1, 
@@ -43,7 +47,8 @@ iso <- scores %>%
   mutate(score = round(unc - intercept, 1), label = score)
 
 # manually remove scores from isolines if there is overlap
-iso$label[c(1, 2, 3, 12, 13, 14, 15, 18, 19, 24, 57, 58, 59, 62, 63, 70)] <- NA
+# iso$label[c(1, 2, 3, 12, 13, 14, 15, 18, 19, 24, 57, 58, 59, 62, 63, 70)] <- NA
+iso$label[c(1, 2, 7, 10, 25, 28, 32, 54, 55, 56, 66)] <- NA
 
 ggplot(data = scores) +
   facet_wrap('quantile', scales = "free", ncol = 3) +
@@ -66,6 +71,7 @@ ggplot(data = scores) +
         axis.ticks.x = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()
-  )
+  ) + 
+  scale_color_brewer(palette="Set1")
 
-# ggsave("figures/score_decomposition.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
+ggsave("figures/score_decomposition.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)

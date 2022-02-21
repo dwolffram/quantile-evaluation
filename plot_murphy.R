@@ -54,4 +54,4 @@ models <- c("KITmetricslab-select_ensemble", "COVIDhub-ensemble", "COVIDhub-base
 
 murphy_diagram(df, models, "1 wk ahead inc death", quantiles = c(0.25, 0.5, 0.75)) 
 
-ggsave("figures/murphy_states2.pdf", width=210, height=100, unit="mm", device = "pdf", dpi=300)
+ggsave("figures/murphy_states.pdf", width=210, height=100, unit="mm", device = "pdf", dpi=300)
