@@ -112,7 +112,7 @@ get_annotation <- function(df, model, xmax){
 
 ### MEDIAN RELIABILITY FOR EACH MODEL
 
-df <- read_csv(paste0("data/2022-01-03_df_processed.csv.gz")) %>%
+df <- read_csv("data/2022-01-03_df_processed.csv.gz") %>%
   filter(location != "US") # states (!= "US") or national level (== "US")?
 
 models = c("COVIDhub-baseline", "COVIDhub-ensemble", "KITmetricslab-select_ensemble")
@@ -187,7 +187,7 @@ main_plot + insets
 
 ### MULTIPLE QUANTILES FOR EACH MODEL
 
-df <- read_csv(paste0("data/2022-01-03_df_processed.csv.gz")) %>%
+df <- read_csv("data/2022-01-03_df_processed.csv.gz") %>%
   filter(location == "US") # states (!= "US") or national level (== "US")?
 
 models = c("COVIDhub-baseline", "COVIDhub-ensemble", "KITmetricslab-select_ensemble")
