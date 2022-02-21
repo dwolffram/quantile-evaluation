@@ -41,16 +41,17 @@ murphy_diagram <- function(df, models, target,
           legend.background = element_blank(),
           legend.box.background = element_rect(color = "black"),
           panel.grid.major = element_line(size = 0.05), 
-          panel.grid.minor = element_line(size = 0.05))
+          panel.grid.minor = element_line(size = 0.05)) + 
+    scale_color_brewer(palette="Set1")
 }
 
 
 # Load data
-df <- read_csv("data/2022-01-03_df_processed.csv", col_types = cols()) %>%
+df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
   filter(location != "US")
 
 models <- c("KITmetricslab-select_ensemble", "COVIDhub-ensemble", "COVIDhub-baseline")
 
-murphy_diagram(df, models, "1 wk ahead inc death", quantiles = c(0.05, 0.5, 0.95))
+murphy_diagram(df, models, "1 wk ahead inc death", quantiles = c(0.25, 0.5, 0.75)) 
 
-# ggsave("figures/murphy_states.pdf", width=210, height=100, unit="mm", device = "pdf", dpi=300)
+ggsave("figures/murphy_states2.pdf", width=210, height=100, unit="mm", device = "pdf", dpi=300)
