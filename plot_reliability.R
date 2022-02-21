@@ -109,10 +109,11 @@ get_annotation <- function(df, model, xmax){
   #ymin = -2000, ymax=4000, xmin=10000, xmax=15000)
 }
 
-eval_date <- '2022-01-03'
 
-df <- read.csv(paste0("evaluation/", eval_date, "_df_processed.csv")) %>%
-  filter(location != "US")
+### MEDIAN RELIABILITY FOR EACH MODEL
+
+df <- read_csv(paste0("data/2022-01-03_df_processed.csv.gz")) %>%
+  filter(location != "US") # states (!= "US") or national level (== "US")?
 
 models = c("COVIDhub-baseline", "COVIDhub-ensemble", "KITmetricslab-select_ensemble")
 target = "1 wk ahead inc death"
@@ -181,14 +182,13 @@ insets <- results %>%
 
 main_plot + insets    
 
-ggsave("figures/rel_diag_inset_states.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
+# ggsave("figures/rel_diag_inset_states.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
 
-### Multiple quantiles
 
-eval_date <- '2022-01-03'
+### MULTIPLE QUANTILES FOR EACH MODEL
 
-df <- read.csv(paste0("evaluation/", eval_date, "_df_processed.csv")) %>%
-  filter(location != "US")
+df <- read_csv(paste0("data/2022-01-03_df_processed.csv.gz")) %>%
+  filter(location == "US") # states (!= "US") or national level (== "US")?
 
 models = c("COVIDhub-baseline", "COVIDhub-ensemble", "KITmetricslab-select_ensemble")
 target = "1 wk ahead inc death"
@@ -218,8 +218,8 @@ scores <- results %>%
                         c("", "", paste0(" [p = ", round(pval_cond, digits = 2),"]"), "", ""),
                         collapse = "\n"))
 
-cols <- c("x", "y", "x_rc", "lower", "upper")
-results[cols] <- sqrt(results[cols])
+# cols <- c("x", "y", "x_rc", "lower", "upper")
+# results[cols] <- sqrt(results[cols])
 
 # needed to ensure square facets with equal x and y limits
 facet_lims <- results %>%
@@ -229,15 +229,12 @@ facet_lims <- results %>%
 
 main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
   facet_grid(rows = vars(quantile), cols = vars(model)) +
-  #geom_point(aes(x, y), alpha=0.2) +
+  # geom_point(aes(x, y), size=0.4, alpha=0.4) +
   geom_abline(intercept = 0 , slope = 1, colour="grey70") +
-  #geom_point(color = "red", size=0.5) +
+  # geom_point(color = "red", size=0.5) +
   # geom_step(color = "red", direction = "vh") +    
   geom_smooth(aes(ymin = lower, ymax = upper), linetype = 0, stat = "identity", fill = "skyblue3") +
-  # geom_line(aes(y=lower), color = "skyblue3", size = 0.1) +
-  # geom_line(aes(y=upper), color = "skyblue3", size = 0.1) +
   geom_line(color = "firebrick3") + 
-  # geom_rug(sides = "b", alpha = 0.2, size = 0.25) +
   geom_blank(data = facet_lims, aes(x = mx, y = mx)) +
   geom_blank(data = facet_lims, aes(x = mn, y = mn)) +
   xlab("Forecast value") +
@@ -253,10 +250,11 @@ main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
   coord_fixed()
 
 
+
 insets <- results %>%
   group_by(model, quantile) %>%
   group_map(get_annotation, xmax=max(facet_lims$mx), .keep=TRUE)
 
 main_plot + insets
 
-ggsave("figures/rel_diag_inset_states_grid_sqrt.pdf", width=200, height=250, unit="mm", device = "pdf", dpi=300)
+# ggsave("figures/reliability_states_grid2.pdf", width=200, height=250, unit="mm", device = "pdf", dpi=300)
