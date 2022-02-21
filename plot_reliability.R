@@ -188,11 +188,13 @@ main_plot + insets
 ### MULTIPLE QUANTILES FOR EACH MODEL
 
 df <- read_csv("data/2022-01-03_df_processed.csv.gz") %>%
-  filter(location == "US") # states (!= "US") or national level (== "US")?
+  filter(location != "US") # states (!= "US") or national level (== "US")?
 
 models = c("COVIDhub-baseline", "COVIDhub-ensemble", "KITmetricslab-select_ensemble")
 target = "1 wk ahead inc death"
-quantiles = c(0.025, 0.05, 0.5, 0.95, 0.975)
+quantiles = c(0.1, 0.3, 0.5, 0.7, 0.9)
+quantiles = c(0.25, 0.5, 0.75)
+
 n_resamples = 99
 
 df <- df %>%
@@ -218,8 +220,8 @@ scores <- results %>%
                         c("", "", paste0(" [p = ", round(pval_cond, digits = 2),"]"), "", ""),
                         collapse = "\n"))
 
-# cols <- c("x", "y", "x_rc", "lower", "upper")
-# results[cols] <- sqrt(results[cols])
+cols <- c("x", "y", "x_rc", "lower", "upper")
+results[cols] <- sqrt(results[cols])
 
 # needed to ensure square facets with equal x and y limits
 facet_lims <- results %>%
@@ -257,4 +259,4 @@ insets <- results %>%
 
 main_plot + insets
 
-# ggsave("figures/reliability_states_grid2.pdf", width=200, height=250, unit="mm", device = "pdf", dpi=300)
+ggsave("figures/reliability_states_grid_sqrt2.pdf", width=200, height=200, unit="mm", device = "pdf", dpi=300)
