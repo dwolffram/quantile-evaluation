@@ -213,3 +213,81 @@ ggplot(results_diff) +
 
 # ggsave("figures/coverage_diff_states_2colors.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
 
+
+### CONSISTENCY BANDS
+
+# Load data
+models <- c("KITmetricslab-select_ensemble", "COVIDhub-ensemble", "COVIDhub-baseline")
+
+df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
+  filter(location != "US")
+
+df <- df %>%
+  filter(target == "1 wk ahead inc death",
+         model %in% models) %>% 
+  select(- target)
+
+get_cr <- function(sample_size, alpha, nominal_level, alternative='less'){
+  if(alternative == 'less'){
+    C <- 0
+    while(pbinom(C + 1, sample_size, alpha) < nominal_level) C <- C+1
+  } 
+  else if(alternative == 'greater'){
+    C <- sample_size
+    while (1 - pbinom(C-1, sample_size, alpha) < nominal_level) C <- C -1
+  }
+  return(C)
+}
+
+
+coverage_df <- coverage(df)
+
+consistency_bands <- df %>% 
+  group_by(model, quantile) %>% 
+  summarize(count = n())
+
+consistency_bands <- consistency_bands %>% 
+  rowwise() %>% 
+  mutate(lower = get_cr(count, quantile, 0.05, "less")/count,
+         upper = get_cr(count, quantile, 0.05, "greater")/count)
+
+coverage_df <- coverage_df %>% 
+  left_join(consistency_bands)
+
+ggplot(coverage_df) +
+  facet_wrap("model", ncol = 3) +
+  geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), size = 0.2, linetype = "solid", colour = "grey70")+
+  geom_ribbon(aes(x = quantile, ymin = lower, ymax = upper), fill = "skyblue3", alpha = 0.4) +
+  geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
+  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
+                     labels = function(x) ifelse(x == 0, "0", x)) +
+  scale_y_continuous(labels = function(y) ifelse(y == 0, "0", y)) +
+  xlab("Quantile") +
+  ylab(NULL) +
+  theme_bw(base_size = 11) +
+  theme(panel.grid.major = element_line(size = 0.05), 
+        panel.grid.minor = element_line(size = 0.05)) +
+  coord_fixed()
+
+ggsave("figures/coverage_states_consistency.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
+
+coverage_diff <- coverage_df %>% 
+  mutate_at(vars("l", "u", "lower", "upper"), 
+            list(~ . - quantile))
+
+ggplot(coverage_diff) +
+  facet_wrap("model") +
+  geom_hline(yintercept = 0, size = 0.3, linetype = "solid", color = "darkgray") +
+  geom_ribbon(aes(x = quantile, ymin = lower, ymax = upper), fill = "skyblue3", alpha = 0.4) +
+  geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
+  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
+                     labels = function(x) ifelse(x == 0, "0", x)) +
+  scale_y_continuous(labels = function(y) ifelse(y == 0, "0", y)) +
+  xlab("Quantile") +
+  ylab(NULL) +
+  theme_bw(base_size = 11) +
+  theme(panel.grid.major = element_line(size = 0.05), 
+        panel.grid.minor = element_line(size = 0.05))
+
+ggsave("figures/coverage_diff_states_consistency.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
+
