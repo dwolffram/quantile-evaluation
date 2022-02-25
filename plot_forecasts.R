@@ -1,6 +1,7 @@
 library(tidyverse)
-
 Sys.setlocale("LC_ALL", "C")
+
+### THE LATEST PLOTS ARE AT THE BOTTOM
 
 df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols())
 df_wide <- pivot_wider(df, names_from=quantile, names_prefix="value.", values_from=value)
@@ -179,7 +180,12 @@ ggplot(df2_wide, aes(x=target_end_date)) +
 
 ggsave("figures/forecasts.pdf", width=200, height=220, unit="mm", device = "pdf", dpi=500)
 
+
+### NEWEST VERSION
+
 highlight <- c(0.025, 0.25, 0.50, 0.75, 0.975)
+highlight <- c(0.05, 0.25, 0.50, 0.75, 0.95)
+highlight <- c(0.01, 0.05, 0.25, 0.50, 0.75, 0.95, 0.99)
 
 df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols())%>%
   filter(model %in% models,
@@ -214,14 +220,14 @@ ggplot(df1, aes(x=target_end_date)) +
         legend.position = "none",
         axis.text.x = element_text(hjust = -1.25))
 
-ggsave("figures/forecasts.pdf", width=180, height=220, unit="mm", device = "pdf", dpi=500)
+# ggsave("figures/forecasts.pdf", width=180, height=220, unit="mm", device = "pdf", dpi=500)
 
 ggplot(df1, aes(x=target_end_date)) +
   facet_wrap("model", ncol = 1) +
   geom_crossbar(data = df_box, aes(y = value.0.5, ymin = value.0.01, ymax = value.0.99), fatten = 1,
-                width = 2, size = 0.3, colour = "gray", fill = "gray", alpha = 0.3) +
+                width = 2, size = 0.3, colour = "azure4", fill = "gray", alpha = 0.4) +
   geom_segment(data = df2, aes(x = target_end_date - 1, xend = target_end_date + 1, y = value, yend = value), 
-               color = "gray", size = 0.3) + 
+               color = "azure4", size = 0.25) + 
   geom_segment(data = df1, aes(x = target_end_date - 1.25, xend = target_end_date + 1.25, y = value, yend = value), 
                color = "deepskyblue4", size = 0.4, lineend = "round") + 
   geom_line(aes(y=truth), size = 0.3, col='darkred') +
@@ -234,5 +240,5 @@ ggplot(df1, aes(x=target_end_date)) +
         legend.position = "none",
         axis.text.x = element_text(hjust = -1.25))
 
-ggsave("figures/forecasts2.pdf", width=180, height=220, unit="mm", device = "pdf", dpi=500)
+ggsave("figures/forecasts4.pdf", width=180, height=220, unit="mm", device = "pdf", dpi=500)
 
