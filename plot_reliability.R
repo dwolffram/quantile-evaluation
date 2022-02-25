@@ -220,8 +220,9 @@ scores <- results %>%
                         c("", "", paste0(" [p = ", round(pval_cond, digits = 2),"]"), "", ""),
                         collapse = "\n"))
 
-cols <- c("x", "y", "x_rc", "lower", "upper")
-results[cols] <- sqrt(results[cols])
+# root transformation
+# cols <- c("x", "y", "x_rc", "lower", "upper")
+# results[cols] <- sqrt(results[cols])
 
 # needed to ensure square facets with equal x and y limits
 facet_lims <- results %>%
@@ -259,4 +260,4 @@ insets <- results %>%
 
 main_plot + insets
 
-ggsave("figures/reliability_states_grid_sqrt2.pdf", width=200, height=200, unit="mm", device = "pdf", dpi=300)
+# ggsave("figures/reliability_states_grid.pdf", width=200, height=200, unit="mm", device = "pdf", dpi=300)
