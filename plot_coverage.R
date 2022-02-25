@@ -99,8 +99,8 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, differenc
 # Load data
 models <- c("KITmetricslab-select_ensemble", "COVIDhub-ensemble", "COVIDhub-baseline")
 
-df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
-  filter(location != "US")
+# df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
+#   filter(location != "US")
 
 df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
   filter(location_name == "Vermont")
@@ -111,7 +111,7 @@ df <- df %>%
   select(- target)
 
 # Plot coverage
-results <- plot_coverage(df, B = 1000)
+results <- plot_coverage(df, B = 100)
 
 # ggsave("figures/coverage_national.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
 # ggsave("figures/coverage_states.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
