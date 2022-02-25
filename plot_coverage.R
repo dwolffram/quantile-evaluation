@@ -53,8 +53,8 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, differenc
     g <- ggplot(results) +
       facet_wrap("model", ncol = 3) +
       geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), size = 0.2, linetype = "solid", colour = "grey70")+
-      geom_ribbon(aes(x = quantile, ymin = l_25, ymax = u_75), fill = "darkred", alpha = 0.2) +
-      geom_ribbon(aes(x = quantile, ymin = l_5, ymax = u_95), fill = "darkred", alpha = 0.2) +
+      geom_ribbon(aes(x = quantile, ymin = l_5, ymax = l_95), fill = "darkblue", alpha = 0.2) +
+      geom_ribbon(aes(x = quantile, ymin = u_5, ymax = u_95), fill = "darkred", alpha = 0.2) +
       geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
       scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
                          labels = function(x) ifelse(x == 0, "0", x)) +
@@ -79,8 +79,8 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, differenc
     g <- ggplot(results_diff) +
       facet_wrap("model") +
       geom_hline(yintercept = 0, size = 0.3, linetype = "solid", color = "darkgray") +
-      geom_ribbon(aes(x = quantile, ymin = l_25, ymax = u_75), fill = "darkred", alpha = 0.2) +
-      geom_ribbon(aes(x = quantile, ymin = l_5, ymax = u_95), fill = "darkred", alpha = 0.2) +
+      geom_ribbon(aes(x = quantile, ymin = l_5, ymax = l_95), fill = "darkblue", alpha = 0.2) +
+      geom_ribbon(aes(x = quantile, ymin = u_5, ymax = u_95), fill = "darkred", alpha = 0.2) +
       geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
       scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
                          labels = function(x) ifelse(x == 0, "0", x)) +
@@ -116,123 +116,13 @@ results <- plot_coverage(df, B = 100)
 # ggsave("figures/coverage_national.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
 # ggsave("figures/coverage_states.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
 
-results_diff <- plot_coverage(df, B = 1000, difference = TRUE)
+results_diff <- plot_coverage(df, B = 100, difference = TRUE)
 
 # ggsave("figures/coverage_diff_national.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
 # ggsave("figures/coverage_diff_states.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
 
 
-
-### Using bars instead of bands
-
-ggplot(results_diff) +
-  facet_wrap("model", ncol=3) +
-  geom_segment(aes(x=0,xend=1,y=0,yend=0), size=0.2, linetype="solid", colour="grey70")+
-  geom_rect(aes(xmin=quantile-0.007, xmax=quantile+0.007, ymin=l, ymax=u), fill="deepskyblue4",alpha = 0.7) +
-  geom_errorbar(aes(x=quantile+0.0035, ymin=u_5, ymax=u_95), width=0.01, size=0.3,colour="red") +
-  geom_errorbar(aes(x=quantile-0.0035, ymin=l_5, ymax=l_95), width=0.01, size=0.3,colour="red") +
-  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
-                     labels = function(x) ifelse(x == 0, "0", x)) +
-  scale_y_continuous(labels = function(y) ifelse(y == 0, "0", y)) +
-  xlab('Quantile') +
-  ylab(NULL) +
-  # labs(title="Coverage of death forecasts") +
-  theme_bw(base_size=11) +
-  theme(panel.grid.major = element_line(size = 0.05), 
-        panel.grid.minor = element_line(size = 0.05))
-
-ggplot(results_diff) +
-  facet_wrap("model", ncol=1) +
-  geom_segment(aes(x=0,xend=1,y=0,yend=0), size=0.2, linetype="solid", colour="grey70")+
-  geom_errorbar(aes(x=quantile+0.01, ymin=u_5, ymax=u_95), width=0.006, size=0.1,colour="firebrick1") +
-  geom_errorbar(aes(x=quantile-0.01, ymin=l_5, ymax=l_95), width=0.006, size=0.1,colour="firebrick1") +
-  geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +  
-  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
-                     labels = function(x) ifelse(x == 0, "0", x)) +
-  scale_y_continuous(labels = function(y) ifelse(y == 0, "0", y)) +
-  xlab('Quantile') +
-  ylab(NULL) +
-  # labs(title="Coverage of death forecasts") +
-  theme_bw(base_size=11) +
-  theme(panel.grid.major = element_line(size = 0.05), 
-        panel.grid.minor = element_line(size = 0.05))
-
-# ggsave("figures/coverage_diff_3bars_long.pdf", width=200, height=200, unit="mm", device = "pdf", dpi=300)
-
-ggplot(results) +
-  facet_wrap("model", ncol=3) +
-  geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), size = 0.2, linetype = "solid", colour = "grey70")+
-  geom_errorbar(aes(x=quantile+0.01, ymin=u_5, ymax=u_95), width=0.006, size=0.1,colour="firebrick1") +
-  geom_errorbar(aes(x=quantile-0.01, ymin=l_5, ymax=l_95), width=0.006, size=0.1,colour="firebrick1") +
-  geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +  
-  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
-                     labels = function(x) ifelse(x == 0, "0", x)) +
-  scale_y_continuous(labels = function(y) ifelse(y == 0, "0", y)) +
-  xlab('Quantile') +
-  ylab(NULL) +
-  # labs(title="Coverage of death forecasts") +
-  theme_bw(base_size = 11) +
-  theme(panel.grid.major = element_line(size = 0.05), 
-        panel.grid.minor = element_line(size = 0.05)) +
-  coord_fixed()
-
-# ggsave("figures/coverage_3bars.pdf", width=200, height=70, unit="mm", device = "pdf", dpi=300)
-
-
-
-### Different colors for both CIs
-ggplot(results) +
-  facet_wrap("model", ncol = 3) +
-  geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), size = 0.2, linetype = "solid", colour = "grey70")+
-  geom_ribbon(aes(x = quantile, ymin = l_5, ymax = l_95), fill = "darkblue", alpha = 0.2) +
-  geom_ribbon(aes(x = quantile, ymin = u_5, ymax = u_95), fill = "darkred", alpha = 0.2) +
-  geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
-  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
-                     labels = function(x) ifelse(x == 0, "0", x)) +
-  scale_y_continuous(labels = function(y) ifelse(y == 0, "0", y)) +
-  xlab("Quantile") +
-  ylab(NULL) +
-  theme_bw(base_size = 11) +
-  theme(panel.grid.major = element_line(size = 0.05), 
-        panel.grid.minor = element_line(size = 0.05)) +
-  coord_fixed()
-
-ggsave("figures/coverage_vermont_2colors.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
-
-ggplot(results_diff) +
-  facet_wrap("model") +
-  geom_hline(yintercept = 0, size = 0.3, linetype = "solid", color = "darkgray") +
-  geom_ribbon(aes(x = quantile, ymin = l_5, ymax = l_95), fill = "darkblue", alpha = 0.2) +
-  geom_ribbon(aes(x = quantile, ymin = u_5, ymax = u_95), fill = "darkred", alpha = 0.2) +
-  geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
-  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
-                     labels = function(x) ifelse(x == 0, "0", x)) +
-  scale_y_continuous(labels = function(y) ifelse(y == 0, "0", y)) +
-  xlab("Quantile") +
-  ylab(NULL) +
-  theme_bw(base_size = 11) +
-  theme(panel.grid.major = element_line(size = 0.05), 
-        panel.grid.minor = element_line(size = 0.05))
-
-ggsave("figures/coverage_diff_vermont_2colors.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
-
-
 ### CONSISTENCY BANDS
-
-# Load data
-models <- c("KITmetricslab-select_ensemble", "COVIDhub-ensemble", "COVIDhub-baseline")
-
-df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
-  filter(location == "US")
-
-df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
-  filter(location_name == "Nebraska")
-
-df <- df %>%
-  filter(target == "1 wk ahead inc death",
-         model %in% models) %>% 
-  select(- target)
-
 get_cr <- function(sample_size, alpha, nominal_level, alternative='less'){
   if(alternative == 'less'){
     C <- 0
@@ -245,64 +135,156 @@ get_cr <- function(sample_size, alpha, nominal_level, alternative='less'){
   return(C)
 }
 
+plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "confidence", difference = FALSE){
+  # some customizations used in all plots
+  my_theme <- list(
+    scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), labels = function(x) ifelse(x == 0, "0", x)),
+    scale_y_continuous(labels = function(y) ifelse(y == 0, "0", y)),
+    xlab("Quantile"),
+    ylab(NULL),
+    theme_bw(base_size = 11),
+    theme(panel.grid.major = element_line(size = 0.05), 
+          panel.grid.minor = element_line(size = 0.05))
+  )
+  
+  if (type == "confidence"){
+    date_column <- enquo(date_column)
+    dates <- df %>% distinct(!!date_column) %>% pull()
+    
+    # compute coverage on all bootstrap samples
+    coverage_df = data.frame()  
+    for(i in 1:B){
+      dates_resampled <- sample(dates, replace = TRUE)
+      
+      # simple filter doesn't work because the same date can occur multiple times
+      df_resampled <- lapply(dates_resampled, function(x){df %>% filter(target_end_date == x)}) %>%
+        bind_rows()
+      
+      coverage_sample <- coverage(df_resampled)
+      
+      coverage_df <- bind_rows(coverage_df, coverage_sample)
+    }
+    
+    # compute CIs from bootstrapped coverage
+    results <- coverage_df %>%
+      group_by(model, quantile) %>%
+      summarize(l_5 = quantile(l, 0.05),
+                l_95 = quantile(l, 0.95),
+                l_25 = quantile(l, 0.25),
+                l_75 = quantile(l, 0.75),
+                u_5 = quantile(u, 0.05),
+                u_95 = quantile(u, 0.95),
+                u_25 = quantile(u, 0.25),
+                u_75 = quantile(u, 0.75), 
+                .groups = "drop")
+    
+    # compute coverage on full sample
+    coverage_full <- coverage(df)
+    
+    results <- results %>%
+      left_join(coverage_full, by = c("model", "quantile"))
+    
+    if (!difference){
+      g <- ggplot(results) +
+        facet_wrap("model", ncol = 3) +
+        geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), size = 0.2, linetype = "solid", colour = "grey70")+
+        geom_ribbon(aes(x = quantile, ymin = l_5, ymax = l_95), fill = "darkblue", alpha = 0.2) +
+        geom_ribbon(aes(x = quantile, ymin = u_5, ymax = u_95), fill = "darkred", alpha = 0.2) +
+        geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
+        my_theme +
+        coord_fixed()
+    }
+    
+    else{
+      results <- results %>% 
+        mutate_at(vars("l", "u", 
+                       "l_5", "l_25", "l_75", "l_95", 
+                       "u_5", "u_25","u_75", "u_95"), 
+                  list(~ . - quantile))
+      
+      g <- ggplot(results) +
+        facet_wrap("model") +
+        geom_hline(yintercept = 0, size = 0.3, linetype = "solid", color = "darkgray") +
+        geom_ribbon(aes(x = quantile, ymin = l_5, ymax = l_95), fill = "darkblue", alpha = 0.2) +
+        geom_ribbon(aes(x = quantile, ymin = u_5, ymax = u_95), fill = "darkred", alpha = 0.2) +
+        geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
+        my_theme
+    }
+  }
+  else if (type == "consistency"){
+    results <- coverage(df)
+    
+    consistency_bands <- df %>% 
+      group_by(model, quantile) %>% 
+      summarize(count = n(), 
+                .groups = "drop")
+    
+    consistency_bands <- consistency_bands %>% 
+      rowwise() %>% 
+      mutate(lower90 = get_cr(count, quantile, 0.05, "less")/count,
+             upper90 = get_cr(count, quantile, 0.05, "greater")/count,
+             lower50 = get_cr(count, quantile, 0.25, "less")/count,
+             upper50 = get_cr(count, quantile, 0.25, "greater")/count)
+    
+    results <- results %>% 
+      left_join(consistency_bands, by = c("model", "quantile"))
+    
+    if (!difference){
+      g <- ggplot(results) +
+        facet_wrap("model", ncol = 3) +
+        geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), size = 0.2, linetype = "solid", colour = "grey70")+
+        geom_ribbon(aes(x = quantile, ymin = lower50, ymax = upper50), fill = "skyblue3", alpha = 0.3) +
+        geom_ribbon(aes(x = quantile, ymin = lower90, ymax = upper90), fill = "skyblue3", alpha = 0.2) +
+        geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
+        my_theme +
+        coord_fixed()
+    }
+    
+    else {
+      results <- results %>% 
+        mutate_at(vars("l", "u", "lower50", "upper50", "lower90", "upper90"), 
+                  list(~ . - quantile))
+      
+      g <- ggplot(results) +
+        facet_wrap("model") +
+        geom_hline(yintercept = 0, size = 0.3, linetype = "solid", color = "darkgray") +
+        geom_ribbon(aes(x = quantile, ymin = lower50, ymax = upper50), fill = "skyblue3", alpha = 0.3) +
+        geom_ribbon(aes(x = quantile, ymin = lower90, ymax = upper90), fill = "skyblue3", alpha = 0.2) +
+        geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
+        my_theme
+      
+    }
+  }
+  
+  print(g)
+  invisible(results)
+}
 
-coverage_df <- coverage(df)
+# Load data
+models <- c("KITmetricslab-select_ensemble", "COVIDhub-ensemble", "COVIDhub-baseline")
 
-consistency_bands <- df %>% 
-  group_by(model, quantile) %>% 
-  summarize(count = n())
+# df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
+#   filter(location == "US")
 
-consistency_bands <- consistency_bands %>% 
-  rowwise() %>% 
-  mutate(lower90 = get_cr(count, quantile, 0.05, "less")/count,
-         upper90 = get_cr(count, quantile, 0.05, "greater")/count,
-         lower50 = get_cr(count, quantile, 0.25, "less")/count,
-         upper50 = get_cr(count, quantile, 0.25, "greater")/count)
+df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
+  filter(location_name == "Vermont")
 
-coverage_df <- coverage_df %>% 
-  left_join(consistency_bands)
+df <- df %>%
+  filter(target == "1 wk ahead inc death",
+         model %in% models) %>% 
+  select(- target)
 
-ggplot(coverage_df) +
-  facet_wrap("model", ncol = 3) +
-  geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), size = 0.2, linetype = "solid", colour = "grey70")+
-  geom_ribbon(aes(x = quantile, ymin = lower50, ymax = upper50), fill = "skyblue3", alpha = 0.3) +
-  geom_ribbon(aes(x = quantile, ymin = lower90, ymax = upper90), fill = "skyblue3", alpha = 0.2) +
-  geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
-  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
-                     labels = function(x) ifelse(x == 0, "0", x)) +
-  scale_y_continuous(labels = function(y) ifelse(y == 0, "0", y)) +
-  xlab("Quantile") +
-  ylab(NULL) +
-  theme_bw(base_size = 11) +
-  theme(panel.grid.major = element_line(size = 0.05), 
-        panel.grid.minor = element_line(size = 0.05)) +
-  coord_fixed()
-
-ggsave("figures/coverage_nebraska_consistency.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
-
-coverage_diff <- coverage_df %>% 
-  mutate_at(vars("l", "u", "lower50", "upper50", "lower90", "upper90"), 
-            list(~ . - quantile))
-
-ggplot(coverage_diff) +
-  facet_wrap("model") +
-  geom_hline(yintercept = 0, size = 0.3, linetype = "solid", color = "darkgray") +
-  geom_ribbon(aes(x = quantile, ymin = lower50, ymax = upper50), fill = "skyblue3", alpha = 0.3) +
-  geom_ribbon(aes(x = quantile, ymin = lower90, ymax = upper90), fill = "skyblue3", alpha = 0.2) +
-  geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
-  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
-                     labels = function(x) ifelse(x == 0, "0", x)) +
-  scale_y_continuous(labels = function(y) ifelse(y == 0, "0", y)) +
-  xlab("Quantile") +
-  ylab(NULL) +
-  theme_bw(base_size = 11) +
-  theme(panel.grid.major = element_line(size = 0.05), 
-        panel.grid.minor = element_line(size = 0.05))
-
-ggsave("figures/coverage_diff_national_consistency.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
+plot_coverage(df, B=100, type="confidence", difference=FALSE)
+plot_coverage(df, B=100, type="confidence", difference=TRUE)
+plot_coverage(df, B=100, type="consistency", difference=FALSE)
+plot_coverage(df, B=100, type="consistency", difference=TRUE)
 
 
-### Individual states
+# ggsave("figures/coverage_diff_national_consistency.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
+
+
+
+### Multiple states at once
 
 models <- c("KITmetricslab-select_ensemble", "COVIDhub-ensemble", "COVIDhub-baseline")
 
@@ -357,5 +339,5 @@ ggplot(coverage_df) +
         panel.grid.minor = element_line(size = 0.05)) +
   coord_fixed()
 
-ggsave("figures/coverage_3states_consistency.pdf", width=200, height=200, unit="mm", device = "pdf", dpi=300)
+# ggsave("figures/coverage_3states_consistency.pdf", width=200, height=200, unit="mm", device = "pdf", dpi=300)
 
