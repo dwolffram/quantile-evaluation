@@ -99,7 +99,8 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "c
         geom_ribbon(aes(x = quantile, ymin = l_5, ymax = l_95), fill = "darkblue", alpha = 0.2) +
         geom_ribbon(aes(x = quantile, ymin = u_5, ymax = u_95), fill = "darkred", alpha = 0.2) +
         geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
-        my_theme
+        my_theme +
+        theme(aspect.ratio = 1)
     }
   }
   
@@ -143,8 +144,8 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "c
         geom_ribbon(aes(x = quantile, ymin = lower50, ymax = upper50), fill = "skyblue3", alpha = 0.3) +
         geom_ribbon(aes(x = quantile, ymin = lower90, ymax = upper90), fill = "skyblue3", alpha = 0.2) +
         geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
-        my_theme
-      
+        my_theme +
+        theme(aspect.ratio = 1)
     }
   }
   print(g)

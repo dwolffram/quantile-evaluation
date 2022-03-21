@@ -205,7 +205,7 @@ plot(main_plot)
 ### MULTIPLE QUANTILES FOR EACH MODEL
 
 df <- read_csv("data/2022-01-03_df_processed.csv.gz") %>%
-  filter(location == "US") # states (!= "US") or national level (== "US")?
+  filter(location != "US") # states (!= "US") or national level (== "US")?
 
 models = c("COVIDhub-baseline", "COVIDhub-ensemble", "KITmetricslab-select_ensemble")
 target = "1 wk ahead inc death"
