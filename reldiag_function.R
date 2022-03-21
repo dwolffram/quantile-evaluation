@@ -19,10 +19,7 @@ reldiag = function(x,y,
         # In case of ties, isotone::gpava uses the conditional mean instead of quantile, try e.g.,
         # gpava(c(-1,-1,-1),c(-1,0,0),solver = weighted.median,ties = "secondary")
         
-        # Wrong fix: The following step replaces y values with the respective quantile in case of ties
-        # y = unlist(lapply(split(y,x),function(y) rep(quantile(y,alpha,type = 1),length(y))),use.names = FALSE)
-        
-        # New fix: Use ranking of predictor values and break ties by ordering the corresponding instances in order of decreasing observations
+        # Fix: Use ranking of predictor values and break ties by ordering the corresponding instances in order of decreasing observations
         ranking = match(1:length(x),order(x,y,decreasing = c(FALSE,TRUE)))
         
         return(gpava(ranking,y,solver = weighted.fractile,p = alpha,ties = "secondary")$x)
@@ -50,20 +47,7 @@ reldiag = function(x,y,
   y = y[ord_x]
   
   x_rc = pava(x,y)
-  
-  # Irrelevant with new fix in pava:
-  # # We encountered suboptimal solutions for quantiles in rare cases, e.g.,
-  # # gpava(c(3,3,2,1,1),1:5,solver = weighted.fractile,p = 0.75, ties = "secondary")
-  # # which led to slightly negative DSC components
-  # # applying gpava a second time seems to fix this:
-  # if(type[[1]] == "quantile"){
-  #   x_rc2 = pava(x_rc,y)
-  #   if(!all(x_rc == x_rc2)){
-  #     warning("Encountered multiple gpava solutions...")
-  #     x_rc = x_rc2
-  #   }
-  # }
-  
+
   res = y - x
   
   s = score(x,y)
@@ -78,10 +62,24 @@ reldiag = function(x,y,
   dsc = s_mg - s_rc
   unc = s_mg
   
-  # test: mean identification zero? (t-test)
-  v = identif(x,y)
-  t = sqrt(length(v)) * mean(v)/sd(v)
-  pval_ucond = 1 - abs(pt(t,length(v)-1) - 0.5)*2
+  # Unconditional calibration test  
+  if(type[[1]] == "mean"){
+    # T-Test: Mean identification zero?
+    v = identif(x,y)
+    t = sqrt(length(v)) * mean(v)/sd(v)
+    pval_ucond = 1 - abs(pt(t,length(v)-1) - 0.5)*2
+  }
+  else{
+    # Coverage test: One-sided Binomial tests with Bonferroni correction
+    eps = 10^-10 # avoid numerical artifacts by assuming that values with an absolute difference of less than eps are identical
+    hard_cov <- sum(y < x - eps)
+    soft_cov <- sum(y < x + eps)
+    
+    pval_hard = dbinom(hard_cov,length(y),alpha) + pbinom(hard_cov,length(y),alpha,FALSE)
+    pval_soft = pbinom(soft_cov,size = length(y),prob = alpha)
+    pval_ucond = min(pval_hard,pval_soft,0.5)*2
+    # print(paste0("p-Values: hard ",pval_hard,", soft ",pval_soft))
+  }
   
   if(resampling){
     n_samples = n_resamples + 1 # total number of samples including observed sample
@@ -141,8 +139,6 @@ reldiag = function(x,y,
     par(par.old)
   }
   
-  print(pval)
-  print(round(pval,digits = pval_digits))
   invisible(list(x = x,y = y,res = res,x_rc = x_rc,
                  MDU = c(umcb,cmcb,mcb,dsc,unc),
                  pval_cond = if(resampling) pval else NA,
@@ -155,7 +151,7 @@ reldiag = function(x,y,
 # n = 100
 # y = rnorm(n)
 # x = rnorm(n,sd = 0.5)
-#
+# 
 # reldiag(x,y)
 # reldiag(x,y,resampling = FALSE)   # no resampling = no consistency bands
 # reldiag(x,y,show_decomp = FALSE)  # without score and decomposition
@@ -165,15 +161,15 @@ reldiag = function(x,y,
 
 # Quantile Reliability Diagram:
 
-n = 100
-alpha = 0.1
-y = rnorm(n)
-x = qnorm(alpha) + rnorm(n,sd = 0.5)
-
-r <- reldiag(x,y,type = list("quantile",alpha = alpha))
-reldiag(x,y,type = list("quantile",alpha = alpha),resampling = FALSE)   # no resampling = no consistency bands
-reldiag(x,y,type = list("quantile",alpha = alpha),show_decomp = FALSE)  # without score and decomposition
-reldiag(x,y,type = list("quantile",alpha = alpha),inset_hist = FALSE)   # without inset histogram
-reldiag(x,y,type = list("quantile",alpha = alpha),scatter_plot = FALSE) # without scatter plot
+# n = 100
+# alpha = 0.1
+# y = rnorm(n)
+# x = qnorm(alpha) + rnorm(n,sd = 0.5)
+# 
+# reldiag(x,y,type = list("quantile",alpha = alpha))
+# reldiag(x,y,type = list("quantile",alpha = alpha),resampling = FALSE)   # no resampling = no consistency bands
+# reldiag(x,y,type = list("quantile",alpha = alpha),show_decomp = FALSE)  # without score and decomposition
+# reldiag(x,y,type = list("quantile",alpha = alpha),inset_hist = FALSE)   # without inset histogram
+# reldiag(x,y,type = list("quantile",alpha = alpha),scatter_plot = FALSE) # without scatter plot
 
 

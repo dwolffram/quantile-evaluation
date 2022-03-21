@@ -43,9 +43,20 @@ reldiag = function(x, y, alpha = 0.5, n_resamples = 999, digits = 3, region_leve
   unc = s_mg
   
   # test: mean identification zero? (t-test)
-  v = identif(x,y)
-  t = sqrt(length(v)) * mean(v)/sd(v)
-  pval_ucond = 1 - abs(pt(t,length(v)-1) - 0.5)*2
+  # v = identif(x,y)
+  # t = sqrt(length(v)) * mean(v)/sd(v)
+  # pval_ucond = 1 - abs(pt(t,length(v)-1) - 0.5)*2
+  
+  # Unconditional calibration test
+  # Coverage test: One-sided Binomial tests with Bonferroni correction
+  eps = 10^-10 # avoid numerical artifacts by assuming that values with an absolute difference of less than eps are identical
+  hard_cov <- sum(y < x - eps)
+  soft_cov <- sum(y < x + eps)
+  
+  pval_hard = dbinom(hard_cov,length(y),alpha) + pbinom(hard_cov,length(y),alpha,FALSE)
+  pval_soft = pbinom(soft_cov,size = length(y),prob = alpha)
+  pval_ucond = min(pval_hard,pval_soft,0.5)*2
+  # print(paste0("p-Values: hard ",pval_hard,", soft ",pval_soft))
   
   n_samples = n_resamples + 1 # total number of samples including observed sample
   low = floor(n_samples * (1-region_level)/2)
