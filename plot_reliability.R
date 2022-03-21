@@ -131,6 +131,8 @@ target = "1 wk ahead inc death"
 quantile = 0.5
 n_resamples = 99
 
+plot_hist = TRUE # If FALSE, a scatterplot is included instead
+
 df <- df %>%
   filter(model %in% models,
          target == !!target,
@@ -165,11 +167,13 @@ facet_lims <- results %>%
 
 main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
   facet_wrap(~model, ncol=3) +
-  #geom_point(aes(x, y), alpha=0.2) +
+  {if(!plot_hist) geom_point(aes(x, y), alpha=0.2,size = 0.6)} +
   geom_abline(intercept = 0 , slope = 1, colour="grey70") +
   #geom_point(color = "red", size=0.5) +
   # geom_step(color = "red", direction = "vh") +    
   geom_smooth(aes(ymin = lower, ymax = upper), linetype = 0, stat = "identity", fill = "skyblue3") +
+  {if(!plot_hist) geom_line(aes(x,lower), color = "deepskyblue2")} +
+  {if(!plot_hist) geom_line(aes(x,upper), color = "deepskyblue2")} +
   geom_line(color = "firebrick3") +
   # geom_rug(sides = "b", alpha = 0.2, size = 0.25) +
   geom_blank(data = facet_lims, aes(x = mx, y = mx)) +
@@ -185,13 +189,15 @@ main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
         panel.grid.minor = element_line(size = 0.05)) +
   coord_fixed()
 
+if(plot_hist){
+  insets <- results %>%
+    group_by(model) %>%
+    group_map(get_annotation, xmax=max(facet_lims$mx), .keep=TRUE)
+  
+  main_plot = main_plot + insets
+}
 
-insets <- results %>%
-  group_by(model) %>%
-  group_map(get_annotation, xmax=max(facet_lims$mx), .keep=TRUE)
-
-
-main_plot + insets    
+plot(main_plot)  
 
 # ggsave("figures/rel_diag_inset_states.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
 
@@ -199,12 +205,14 @@ main_plot + insets
 ### MULTIPLE QUANTILES FOR EACH MODEL
 
 df <- read_csv("data/2022-01-03_df_processed.csv.gz") %>%
-  filter(location != "US") # states (!= "US") or national level (== "US")?
+  filter(location == "US") # states (!= "US") or national level (== "US")?
 
 models = c("COVIDhub-baseline", "COVIDhub-ensemble", "KITmetricslab-select_ensemble")
 target = "1 wk ahead inc death"
 quantiles = c(0.1, 0.3, 0.5, 0.7, 0.9)
 quantiles = c(0.25, 0.5, 0.75)
+
+plot_hist = TRUE # If FALSE, a scatterplot is included instead
 
 n_resamples = 99
 
@@ -243,11 +251,13 @@ facet_lims <- results %>%
 
 main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
   facet_grid(rows = vars(quantile), cols = vars(model)) +
-  # geom_point(aes(x, y), size=0.4, alpha=0.4) +
+  {if(!plot_hist) geom_point(aes(x, y), alpha=0.2,size = 0.6)} +
   geom_abline(intercept = 0 , slope = 1, colour="grey70") +
   # geom_point(color = "red", size=0.5) +
   # geom_step(color = "red", direction = "vh") +    
   geom_smooth(aes(ymin = lower, ymax = upper), linetype = 0, stat = "identity", fill = "skyblue3") +
+  {if(!plot_hist) geom_line(aes(x,lower), color = "deepskyblue2")} +
+  {if(!plot_hist) geom_line(aes(x,upper), color = "deepskyblue2")} +
   geom_line(color = "firebrick3") + 
   geom_blank(data = facet_lims, aes(x = mx, y = mx)) +
   geom_blank(data = facet_lims, aes(x = mn, y = mn)) +
@@ -263,12 +273,14 @@ main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
         strip.text.y = element_text(size = 7)) +
   coord_fixed()
 
+if(plot_hist){
+  insets <- results %>%
+    group_by(model) %>%
+    group_map(get_annotation, xmax=max(facet_lims$mx), .keep=TRUE)
+  
+  main_plot = main_plot + insets
+}
 
-
-insets <- results %>%
-  group_by(model, quantile) %>%
-  group_map(get_annotation, xmax=max(facet_lims$mx), .keep=TRUE)
-
-main_plot + insets
+plot(main_plot)
 
 # ggsave("figures/reliability_states_grid.pdf", width=200, height=200, unit="mm", device = "pdf", dpi=300)
