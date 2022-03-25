@@ -132,6 +132,7 @@ quantile = 0.5
 n_resamples = 99
 
 plot_hist = TRUE # If FALSE, a scatterplot is included instead
+inset_hist = TRUE # If FALSE, the histogram is plotted directly above the horizontal axis (as in the binary CORP reliability diagram)
 
 df <- df %>%
   filter(model %in% models,
@@ -184,12 +185,14 @@ main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
   geom_label(data = scores, mapping = aes(x = -Inf, y = Inf, label = label),
              size = 6*0.36, hjust = 0, vjust = 1, label.size = NA, alpha=0, label.padding = unit(1, "lines")) +
   scale_x_continuous(guide = guide_axis(check.overlap = TRUE)) +
+  {if(plot_hist && !inset_hist) geom_histogram(mapping = aes(x = x,y = 0.2*max(facet_lims$mx)*after_stat(count/max(count))),
+                                               bins = 10,colour = "grey", fill = NA)} +
   theme_bw(base_size = 11) +
   theme(panel.grid.major = element_line(size = 0.05), 
         panel.grid.minor = element_line(size = 0.05)) +
   coord_fixed()
 
-if(plot_hist){
+if(plot_hist && inset_hist){
   insets <- results %>%
     group_by(model) %>%
     group_map(get_annotation, xmax=max(facet_lims$mx), .keep=TRUE)
@@ -213,6 +216,7 @@ quantiles = c(0.1, 0.3, 0.5, 0.7, 0.9)
 quantiles = c(0.25, 0.5, 0.75)
 
 plot_hist = TRUE # If FALSE, a scatterplot is included instead
+inset_hist = TRUE # If FALSE, the histogram is plotted directly above the horizontal axis (as in the binary CORP reliability diagram)
 
 n_resamples = 99
 
@@ -267,13 +271,15 @@ main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
              size = 6*0.36, hjust = 0, vjust = 1, label.size = NA, alpha=0, label.padding = unit(1, "lines")) +
   scale_x_continuous(guide = guide_axis(check.overlap = TRUE)) +
   theme_bw(base_size = 11) +
+  {if(plot_hist && !inset_hist) geom_histogram(mapping = aes(x = x,y = 0.2*max(facet_lims$mx)*after_stat(count/max(count))),
+                                               bins = 10,colour = "grey", fill = NA)} +
   theme(panel.grid.major = element_line(size = 0.05), 
         panel.grid.minor = element_line(size = 0.05),
         strip.text.x = element_text(size = 7),
         strip.text.y = element_text(size = 7)) +
   coord_fixed()
 
-if(plot_hist){
+if(plot_hist && inset_hist){
   insets <- results %>%
     group_by(model) %>%
     group_map(get_annotation, xmax=max(facet_lims$mx), .keep=TRUE)
