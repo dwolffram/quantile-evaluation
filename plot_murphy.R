@@ -59,8 +59,8 @@ murphy_diagram <- function(df){
   p1 <- ggplot(xs$`0.25`) +
     geom_line(aes(x=theta, y=mean_score, color=label), size=0.5) +
     facet_wrap("quantile", scales = "free") +
-    xlab(expression(paste("Parameter ", theta))) +
-    ylab(NULL) +
+    xlab(expression(paste("Threshold ", theta))) +
+    ylab("Elementary score") +
     theme_bw(base_size = 11) +
     theme(aspect.ratio = 1, 
           legend.justification=c(1,1), legend.position=c(0.95,1), 
