@@ -132,7 +132,7 @@ quantile = 0.5
 n_resamples = 99
 
 plot_hist = TRUE # If FALSE, a scatterplot is included instead
-inset_hist = TRUE # If FALSE, the histogram is plotted directly above the horizontal axis (as in the binary CORP reliability diagram)
+inset_hist = FALSE # If FALSE, the histogram is plotted directly above the horizontal axis (as in the binary CORP reliability diagram)
 
 df <- df %>%
   filter(model %in% models,
@@ -186,7 +186,7 @@ main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
              size = 6*0.36, hjust = 0, vjust = 1, label.size = NA, alpha=0, label.padding = unit(1, "lines")) +
   scale_x_continuous(guide = guide_axis(check.overlap = TRUE)) +
   {if(plot_hist && !inset_hist) geom_histogram(mapping = aes(x = x,y = 0.2*max(facet_lims$mx)*after_stat(count/max(count))),
-                                               bins = 10,colour = "grey", fill = NA)} +
+                                               bins = 20, boundary = 0, colour = "grey", fill = NA)} +
   theme_bw(base_size = 11) +
   theme(panel.grid.major = element_line(size = 0.05), 
         panel.grid.minor = element_line(size = 0.05)) +
