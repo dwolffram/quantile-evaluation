@@ -43,9 +43,20 @@ reldiag = function(x, y, alpha = 0.5, n_resamples = 999, digits = 3, region_leve
   unc = s_mg
   
   # test: mean identification zero? (t-test)
-  v = identif(x,y)
-  t = sqrt(length(v)) * mean(v)/sd(v)
-  pval_ucond = 1 - abs(pt(t,length(v)-1) - 0.5)*2
+  # v = identif(x,y)
+  # t = sqrt(length(v)) * mean(v)/sd(v)
+  # pval_ucond = 1 - abs(pt(t,length(v)-1) - 0.5)*2
+  
+  # Unconditional calibration test
+  # Coverage test: One-sided Binomial tests with Bonferroni correction
+  eps = 10^-10 # avoid numerical artifacts by assuming that values with an absolute difference of less than eps are identical
+  hard_cov <- sum(y < x - eps)
+  soft_cov <- sum(y < x + eps)
+  
+  pval_hard = dbinom(hard_cov,length(y),alpha) + pbinom(hard_cov,length(y),alpha,FALSE)
+  pval_soft = pbinom(soft_cov,size = length(y),prob = alpha)
+  pval_ucond = min(pval_hard,pval_soft,0.5)*2
+  # print(paste0("p-Values: hard ",pval_hard,", soft ",pval_soft))
   
   n_samples = n_resamples + 1 # total number of samples including observed sample
   low = floor(n_samples * (1-region_level)/2)
@@ -120,6 +131,9 @@ target = "1 wk ahead inc death"
 quantile = 0.5
 n_resamples = 99
 
+plot_hist = TRUE # If FALSE, a scatterplot is included instead
+inset_hist = TRUE # If FALSE, the histogram is plotted directly above the horizontal axis (as in the binary CORP reliability diagram)
+
 df <- df %>%
   filter(model %in% models,
          target == !!target,
@@ -154,11 +168,13 @@ facet_lims <- results %>%
 
 main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
   facet_wrap(~model, ncol=3) +
-  #geom_point(aes(x, y), alpha=0.2) +
+  {if(!plot_hist) geom_point(aes(x, y), alpha=0.2,size = 0.6)} +
   geom_abline(intercept = 0 , slope = 1, colour="grey70") +
   #geom_point(color = "red", size=0.5) +
   # geom_step(color = "red", direction = "vh") +    
   geom_smooth(aes(ymin = lower, ymax = upper), linetype = 0, stat = "identity", fill = "skyblue3") +
+  {if(!plot_hist) geom_line(aes(x,lower), color = "deepskyblue2")} +
+  {if(!plot_hist) geom_line(aes(x,upper), color = "deepskyblue2")} +
   geom_line(color = "firebrick3") +
   # geom_rug(sides = "b", alpha = 0.2, size = 0.25) +
   geom_blank(data = facet_lims, aes(x = mx, y = mx)) +
@@ -169,18 +185,22 @@ main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
   geom_label(data = scores, mapping = aes(x = -Inf, y = Inf, label = label),
              size = 6*0.36, hjust = 0, vjust = 1, label.size = NA, alpha=0, label.padding = unit(1, "lines")) +
   scale_x_continuous(guide = guide_axis(check.overlap = TRUE)) +
+  {if(plot_hist && !inset_hist) geom_histogram(mapping = aes(x = x,y = 0.2*max(facet_lims$mx)*after_stat(count/max(count))),
+                                               bins = 10,colour = "grey", fill = NA)} +
   theme_bw(base_size = 11) +
   theme(panel.grid.major = element_line(size = 0.05), 
         panel.grid.minor = element_line(size = 0.05)) +
   coord_fixed()
 
+if(plot_hist && inset_hist){
+  insets <- results %>%
+    group_by(model) %>%
+    group_map(get_annotation, xmax=max(facet_lims$mx), .keep=TRUE)
+  
+  main_plot = main_plot + insets
+}
 
-insets <- results %>%
-  group_by(model) %>%
-  group_map(get_annotation, xmax=max(facet_lims$mx), .keep=TRUE)
-
-
-main_plot + insets    
+plot(main_plot)  
 
 # ggsave("figures/rel_diag_inset_states.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
 
@@ -194,6 +214,9 @@ models = c("COVIDhub-baseline", "COVIDhub-ensemble", "KITmetricslab-select_ensem
 target = "1 wk ahead inc death"
 quantiles = c(0.1, 0.3, 0.5, 0.7, 0.9)
 quantiles = c(0.25, 0.5, 0.75)
+
+plot_hist = TRUE # If FALSE, a scatterplot is included instead
+inset_hist = TRUE # If FALSE, the histogram is plotted directly above the horizontal axis (as in the binary CORP reliability diagram)
 
 n_resamples = 99
 
@@ -232,11 +255,13 @@ facet_lims <- results %>%
 
 main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
   facet_grid(rows = vars(quantile), cols = vars(model)) +
-  # geom_point(aes(x, y), size=0.4, alpha=0.4) +
+  {if(!plot_hist) geom_point(aes(x, y), alpha=0.2,size = 0.6)} +
   geom_abline(intercept = 0 , slope = 1, colour="grey70") +
   # geom_point(color = "red", size=0.5) +
   # geom_step(color = "red", direction = "vh") +    
   geom_smooth(aes(ymin = lower, ymax = upper), linetype = 0, stat = "identity", fill = "skyblue3") +
+  {if(!plot_hist) geom_line(aes(x,lower), color = "deepskyblue2")} +
+  {if(!plot_hist) geom_line(aes(x,upper), color = "deepskyblue2")} +
   geom_line(color = "firebrick3") + 
   geom_blank(data = facet_lims, aes(x = mx, y = mx)) +
   geom_blank(data = facet_lims, aes(x = mn, y = mn)) +
@@ -246,18 +271,22 @@ main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
              size = 6*0.36, hjust = 0, vjust = 1, label.size = NA, alpha=0, label.padding = unit(1, "lines")) +
   scale_x_continuous(guide = guide_axis(check.overlap = TRUE)) +
   theme_bw(base_size = 11) +
+  {if(plot_hist && !inset_hist) geom_histogram(mapping = aes(x = x,y = 0.2*max(facet_lims$mx)*after_stat(count/max(count))),
+                                               bins = 10,colour = "grey", fill = NA)} +
   theme(panel.grid.major = element_line(size = 0.05), 
         panel.grid.minor = element_line(size = 0.05),
         strip.text.x = element_text(size = 7),
         strip.text.y = element_text(size = 7)) +
   coord_fixed()
 
+if(plot_hist && inset_hist){
+  insets <- results %>%
+    group_by(model) %>%
+    group_map(get_annotation, xmax=max(facet_lims$mx), .keep=TRUE)
+  
+  main_plot = main_plot + insets
+}
 
-
-insets <- results %>%
-  group_by(model, quantile) %>%
-  group_map(get_annotation, xmax=max(facet_lims$mx), .keep=TRUE)
-
-main_plot + insets
+plot(main_plot)
 
 # ggsave("figures/reliability_states_grid.pdf", width=200, height=200, unit="mm", device = "pdf", dpi=300)

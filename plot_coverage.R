@@ -31,8 +31,8 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "c
   my_theme <- list(
     scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), labels = function(x) ifelse(x == 0, "0", x)),
     scale_y_continuous(labels = function(y) ifelse(y == 0, "0", y)),
-    xlab("Quantile"),
-    ylab(NULL),
+    xlab("Quantile Level"),
+    # ylab(NULL),
     theme_bw(base_size = 11),
     theme(panel.grid.major = element_line(size = 0.05), 
           panel.grid.minor = element_line(size = 0.05))
@@ -83,6 +83,7 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "c
         geom_ribbon(aes(x = quantile, ymin = u_5, ymax = u_95), fill = "darkred", alpha = 0.2) +
         geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
         my_theme +
+        ylab("Coverage") +
         coord_fixed()
     }
     
@@ -99,7 +100,9 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "c
         geom_ribbon(aes(x = quantile, ymin = l_5, ymax = l_95), fill = "darkblue", alpha = 0.2) +
         geom_ribbon(aes(x = quantile, ymin = u_5, ymax = u_95), fill = "darkred", alpha = 0.2) +
         geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
-        my_theme
+        my_theme +
+        ylab("Coverage - Level") +
+        theme(aspect.ratio = 1)
     }
   }
   
@@ -129,6 +132,7 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "c
         geom_ribbon(aes(x = quantile, ymin = lower90, ymax = upper90), fill = "skyblue3", alpha = 0.2) +
         geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
         my_theme +
+        ylab("Coverage") +
         coord_fixed()
     }
     
@@ -143,8 +147,9 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "c
         geom_ribbon(aes(x = quantile, ymin = lower50, ymax = upper50), fill = "skyblue3", alpha = 0.3) +
         geom_ribbon(aes(x = quantile, ymin = lower90, ymax = upper90), fill = "skyblue3", alpha = 0.2) +
         geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
-        my_theme
-      
+        my_theme +
+        ylab("Coverage - Level") +
+        theme(aspect.ratio = 1)
     }
   }
   print(g)
@@ -228,8 +233,8 @@ ggplot(coverage_df) +
   scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
                      labels = function(x) ifelse(x == 0, "0", x)) +
   scale_y_continuous(labels = function(y) ifelse(y == 0, "0", y)) +
-  xlab("Quantile") +
-  ylab(NULL) +
+  xlab("Quantile Level") +
+  ylab("Coverage") +
   theme_bw(base_size = 11) +
   theme(panel.grid.major = element_line(size = 0.05), 
         panel.grid.minor = element_line(size = 0.05)) +
