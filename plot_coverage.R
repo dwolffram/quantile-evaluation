@@ -38,7 +38,7 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "c
           panel.grid.minor = element_line(size = 0.05))
   )
   
-  if (type == "confidence"){
+  if (type %in% c("confidence", "confidence2")){
     date_column <- enquo(date_column)
     dates <- df %>% distinct(!!date_column) %>% pull()
     
@@ -78,9 +78,13 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "c
     if (!difference){
       g <- ggplot(results) +
         facet_wrap("model", ncol = 3) +
-        geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), size = 0.2, linetype = "solid", colour = "grey70")+
-        geom_ribbon(aes(x = quantile, ymin = l_5, ymax = l_95), fill = "darkblue", alpha = 0.2) +
-        geom_ribbon(aes(x = quantile, ymin = u_5, ymax = u_95), fill = "darkred", alpha = 0.2) +
+        geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), size = 0.2, linetype = "solid", colour = "grey70") +
+        {if (type == "confidence") list(
+          geom_ribbon(aes(x = quantile, ymin = l_5, ymax = l_95), fill = "darkblue", alpha = 0.2),
+          geom_ribbon(aes(x = quantile, ymin = u_5, ymax = u_95), fill = "darkred", alpha = 0.2))} +
+        {if (type == "confidence2") list(
+          geom_ribbon(aes(x = quantile, ymin = l_25, ymax = l_75), fill = "darkred", alpha = 0.3),
+          geom_ribbon(aes(x = quantile, ymin = l_5, ymax = l_95), fill = "darkred", alpha = 0.2))} +
         geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
         my_theme +
         ylab("Coverage") +
@@ -97,8 +101,12 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "c
       g <- ggplot(results) +
         facet_wrap("model") +
         geom_hline(yintercept = 0, size = 0.3, linetype = "solid", color = "darkgray") +
-        geom_ribbon(aes(x = quantile, ymin = l_5, ymax = l_95), fill = "darkblue", alpha = 0.2) +
-        geom_ribbon(aes(x = quantile, ymin = u_5, ymax = u_95), fill = "darkred", alpha = 0.2) +
+        {if (type == "confidence") list(
+          geom_ribbon(aes(x = quantile, ymin = l_5, ymax = l_95), fill = "darkblue", alpha = 0.2),
+          geom_ribbon(aes(x = quantile, ymin = u_5, ymax = u_95), fill = "darkred", alpha = 0.2))} +
+        {if (type == "confidence2") list(
+          geom_ribbon(aes(x = quantile, ymin = l_25, ymax = l_75), fill = "darkred", alpha = 0.3),
+          geom_ribbon(aes(x = quantile, ymin = l_5, ymax = l_95), fill = "darkred", alpha = 0.2))} +
         geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
         my_theme +
         ylab("Coverage - level") +
@@ -161,8 +169,38 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "c
 # Load data
 models <- c("KITmetricslab-select_ensemble", "COVIDhub-ensemble", "COVIDhub-baseline")
 
-# df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
-#   filter(location == "US")
+# National level
+
+df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
+  filter(location == "US")
+
+df <- df %>%
+  filter(target == "1 wk ahead inc death",
+         model %in% models)
+
+plot_coverage(df, B=100, type="confidence2", difference=FALSE)
+ggsave("figures/national_coverage_confidence.pdf", width=160, height=70, unit="mm", device = "pdf", dpi=300)
+
+plot_coverage(df, B=100, type="consistency", difference=FALSE)
+ggsave("figures/national_coverage_consistency.pdf", width=160, height=70, unit="mm", device = "pdf", dpi=300)
+
+# State level
+
+df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
+  filter(location_name != "US")
+
+df <- df %>%
+  filter(target == "1 wk ahead inc death",
+         model %in% models)
+
+plot_coverage(df, B=100, type="confidence", difference=FALSE)
+ggsave("figures/states_coverage.pdf", width=160, height=70, unit="mm", device = "pdf", dpi=300)
+
+plot_coverage(df, B=100, type="confidence", difference=TRUE)
+ggsave("figures/states_coverage_diff.pdf", width=160, height=70, unit="mm", device = "pdf", dpi=300)
+
+
+# Vermont
 
 df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
   filter(location_name == "Vermont")
@@ -171,17 +209,13 @@ df <- df %>%
   filter(target == "1 wk ahead inc death",
          model %in% models)
 
-# Plot coverage
-results <- plot_coverage(df, B = 100)
-results_diff <- plot_coverage(df, B = 100, difference = TRUE)
-
 plot_coverage(df, B=100, type="confidence", difference=FALSE)
-plot_coverage(df, B=100, type="confidence", difference=TRUE)
+ggsave("figures/Vermont_coverage_confidence.pdf", width=160, height=70, unit="mm", device = "pdf", dpi=300)
+
 plot_coverage(df, B=100, type="consistency", difference=FALSE)
-plot_coverage(df, B=100, type="consistency", difference=TRUE)
+ggsave("figures/Vermont_coverage_consistency.pdf", width=160, height=70, unit="mm", device = "pdf", dpi=300)
 
 
-# ggsave("figures/coverage_national_consistency.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
 
 
 
