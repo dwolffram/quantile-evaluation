@@ -169,6 +169,8 @@ facet_lims <- results %>%
 main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
   facet_wrap(~model, ncol=3) +
   {if(!plot_hist) geom_point(aes(x, y), alpha=0.2,size = 0.6)} +
+  {if(plot_hist && !inset_hist) geom_histogram(mapping = aes(x = x,y = 0.2*max(facet_lims$mx)*after_stat(count/max(count))),
+                                               bins = 20, boundary = 0, size = 0.3, colour = "grey", fill = "grey90")} +
   geom_abline(intercept = 0 , slope = 1, colour="grey70") +
   #geom_point(color = "red", size=0.5) +
   # geom_step(color = "red", direction = "vh") +    
@@ -185,8 +187,6 @@ main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
   geom_label(data = scores, mapping = aes(x = -Inf, y = Inf, label = label),
              size = 6*0.36, hjust = 0, vjust = 1, label.size = NA, alpha=0, label.padding = unit(1, "lines")) +
   scale_x_continuous(guide = guide_axis(check.overlap = TRUE)) +
-  {if(plot_hist && !inset_hist) geom_histogram(mapping = aes(x = x,y = 0.2*max(facet_lims$mx)*after_stat(count/max(count))),
-                                               bins = 20, boundary = 0, colour = "grey", fill = NA)} +
   theme_bw(base_size = 11) +
   theme(panel.grid.major = element_line(size = 0.05), 
         panel.grid.minor = element_line(size = 0.05)) +
@@ -202,21 +202,21 @@ if(plot_hist && inset_hist){
 
 plot(main_plot)  
 
-# ggsave("figures/rel_diag_inset_states.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
+ggsave("figures/rel_diag_hist_states2.pdf", width=160, height=70, unit="mm", device = "pdf", dpi=300)
 
 
 ### MULTIPLE QUANTILES FOR EACH MODEL
 
 df <- read_csv("data/2022-01-03_df_processed.csv.gz") %>%
-  filter(location != "US") # states (!= "US") or national level (== "US")?
+  filter(location == "US") # states (!= "US") or national level (== "US")?
 
 models = c("COVIDhub-baseline", "COVIDhub-ensemble", "KITmetricslab-select_ensemble")
 target = "1 wk ahead inc death"
 quantiles = c(0.1, 0.3, 0.5, 0.7, 0.9)
 quantiles = c(0.25, 0.5, 0.75)
 
-plot_hist = TRUE # If FALSE, a scatterplot is included instead
-inset_hist = TRUE # If FALSE, the histogram is plotted directly above the horizontal axis (as in the binary CORP reliability diagram)
+plot_hist = FALSE # If FALSE, a scatterplot is included instead
+inset_hist = FALSE # If FALSE, the histogram is plotted directly above the horizontal axis (as in the binary CORP reliability diagram)
 
 n_resamples = 99
 
@@ -255,13 +255,15 @@ facet_lims <- results %>%
 
 main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
   facet_grid(rows = vars(quantile), cols = vars(model)) +
-  {if(!plot_hist) geom_point(aes(x, y), alpha=0.2,size = 0.6)} +
+  {if(!plot_hist) geom_point(aes(x, y),  alpha = 0.3, size = 0.1)} +
+  {if(plot_hist && !inset_hist) geom_histogram(mapping = aes(x = x,y = 0.2*max(facet_lims$mx)*after_stat(count/max(count))),
+                                               bins = 20, boundary = 0, colour = "grey", fill = "grey90", size = 0.2)} +
   geom_abline(intercept = 0 , slope = 1, colour="grey70") +
   # geom_point(color = "red", size=0.5) +
   # geom_step(color = "red", direction = "vh") +    
   geom_smooth(aes(ymin = lower, ymax = upper), linetype = 0, stat = "identity", fill = "skyblue3") +
-  {if(!plot_hist) geom_line(aes(x,lower), color = "deepskyblue2")} +
-  {if(!plot_hist) geom_line(aes(x,upper), color = "deepskyblue2")} +
+  # {if(!plot_hist) geom_line(aes(x,lower), color = "deepskyblue2", size = 0.2)} +
+  # {if(!plot_hist) geom_line(aes(x,upper), color = "deepskyblue2", size = 0.2)} +
   geom_line(color = "firebrick3") + 
   geom_blank(data = facet_lims, aes(x = mx, y = mx)) +
   geom_blank(data = facet_lims, aes(x = mn, y = mn)) +
@@ -271,8 +273,8 @@ main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
              size = 6*0.36, hjust = 0, vjust = 1, label.size = NA, alpha=0, label.padding = unit(1, "lines")) +
   scale_x_continuous(guide = guide_axis(check.overlap = TRUE)) +
   theme_bw(base_size = 11) +
-  {if(plot_hist && !inset_hist) geom_histogram(mapping = aes(x = x,y = 0.2*max(facet_lims$mx)*after_stat(count/max(count))),
-                                               bins = 10,colour = "grey", fill = NA)} +
+  # {if(plot_hist && !inset_hist) geom_histogram(mapping = aes(x = x,y = 0.2*max(facet_lims$mx)*after_stat(count/max(count))),
+  #                                              bins = 10,colour = "grey", fill = NA)} +
   theme(panel.grid.major = element_line(size = 0.05), 
         panel.grid.minor = element_line(size = 0.05),
         strip.text.x = element_text(size = 7),
@@ -289,4 +291,4 @@ if(plot_hist && inset_hist){
 
 plot(main_plot)
 
-# ggsave("figures/reliability_states_grid.pdf", width=200, height=200, unit="mm", device = "pdf", dpi=300)
+ggsave("figures/12_national_reliability_scatter2.pdf", width=160, height=200, unit="mm", device = "pdf", dpi=300)
