@@ -1,5 +1,7 @@
 library(tidyverse)
 library(gridExtra)
+library(patchwork)
+
 Sys.setlocale("LC_ALL", "C")
 
 elementary_quantile_score <- function(y_true, y_pred, theta, alpha){
@@ -59,8 +61,9 @@ murphy_diagram <- function(df){
   p1 <- ggplot(xs$`0.25`) +
     geom_line(aes(x=theta, y=mean_score, color=label), size=0.5) +
     facet_wrap("quantile", scales = "free") +
-    xlab(expression(paste("Threshold ", theta))) +
-    # ylab("Elementary score") +
+    #xlab(expression(paste("Threshold ", theta))) +
+    xlab(NULL) +
+    ylab("Elementary score") +
     theme_bw(base_size = 11) +
     theme(aspect.ratio = 1, 
           legend.justification=c(1,1), legend.position=c(0.95,1), 
@@ -76,13 +79,18 @@ murphy_diagram <- function(df){
     labs(color = "Model (quantile score)") +
     expand_limits(x = xmax, y = ymax)
   
-  p2 <- p1 %+% xs$`0.5`
-  p3 <- p1 %+% xs$`0.75`
+  p2 <- p1 %+% xs$`0.5`  + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) + ylab(NULL) + xlab(expression(paste("Threshold ", theta))) 
+  p3 <- p1 %+% xs$`0.75` + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) + ylab(NULL)
   
-  g <- arrangeGrob(p1 + xlab("") + ylab("Elementary score"), 
-                   p2 + ylab(""), 
-                   p3 + xlab("") + ylab(""), 
-                   ncol = 3)
+  # g <- arrangeGrob(p1 + xlab("") + ylab("Elementary score"), 
+  #                  p2 + ylab(""), 
+  #                  p3 + xlab("") + ylab(""), 
+  #                  ncol = 3)
+  # g <- grid.arrange(p1, p2, p3,
+  #                   ncol = 3,
+  #                   left = "Elementary score",
+  #                   bottom = grid.text(expression(paste("Threshold ", theta))))
+  g <- p1 + p2 + p3
   plot(g)
   invisible(g)
 }
@@ -112,8 +120,6 @@ df$model <- fct_relevel(df$model, "Baseline", "COVIDhub-ensemble", "KITmetricsla
 g <- murphy_diagram(df)
 
 ggsave("figures/states_murphy.pdf", plot=g, width=160, height=70, unit="mm", device = "pdf", dpi=300)
-
-
 
 
 ### OLD CODE
