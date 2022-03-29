@@ -60,7 +60,7 @@ murphy_diagram <- function(df){
     geom_line(aes(x=theta, y=mean_score, color=label), size=0.5) +
     facet_wrap("quantile", scales = "free") +
     xlab(expression(paste("Threshold ", theta))) +
-    ylab("Elementary score") +
+    # ylab("Elementary score") +
     theme_bw(base_size = 11) +
     theme(aspect.ratio = 1, 
           legend.justification=c(1,1), legend.position=c(0.95,1), 
@@ -79,7 +79,10 @@ murphy_diagram <- function(df){
   p2 <- p1 %+% xs$`0.5`
   p3 <- p1 %+% xs$`0.75`
   
-  g <- arrangeGrob(p1 + xlab(""), p2, p3 + xlab(""), ncol = 3)
+  g <- arrangeGrob(p1 + xlab("") + ylab("Elementary score"), 
+                   p2 + ylab(""), 
+                   p3 + xlab("") + ylab(""), 
+                   ncol = 3)
   plot(g)
   invisible(g)
 }
@@ -108,7 +111,7 @@ df$model <- fct_relevel(df$model, "Baseline", "COVIDhub-ensemble", "KITmetricsla
 # Plot murphy diagram
 g <- murphy_diagram(df)
 
-# ggsave("figures/murphy_states_qs.pdf", plot=g, width=180, height=70, unit="mm", device = "pdf", dpi=300)
+ggsave("figures/states_murphy.pdf", plot=g, width=160, height=70, unit="mm", device = "pdf", dpi=300)
 
 
 
