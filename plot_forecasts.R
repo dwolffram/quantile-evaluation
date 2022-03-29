@@ -230,15 +230,22 @@ ggplot(df1, aes(x=target_end_date)) +
                color = "azure4", size = 0.25) + 
   geom_segment(data = df1, aes(x = target_end_date - 1.25, xend = target_end_date + 1.25, y = value, yend = value), 
                color = "deepskyblue4", size = 0.4, lineend = "round") + 
-  geom_line(aes(y=truth), size = 0.3, col='darkred') +
+  geom_line(aes(y=truth, col='darkred'), size = 0.8) +
+  scale_color_identity(name = NULL,
+                       breaks = c("darkred"),
+                       labels = c("Truth"),
+                       guide = "legend") +
   scale_x_date(date_breaks = "months" , date_labels = "%b", expand = c(0.02, 0)) +
-  xlab(NULL) +
+  xlab("2021") +
   ylab('Incident deaths') +
   theme_bw(base_size = 11) +
   theme(panel.grid.major = element_line(size = 0.05), 
         panel.grid.minor = element_blank(),
-        legend.position = "none",
+        legend.position = c(0, 1),
+        legend.justification = c(0, 1),
+        legend.background = element_blank(),
+        legend.key = element_blank(),
         axis.text.x = element_text(hjust = -1.25))
 
-ggsave("figures/forecasts4.pdf", width=180, height=220, unit="mm", device = "pdf", dpi=500)
+ggsave("figures/forecasts5.pdf", width=160, height=200, unit="mm", device = "pdf", dpi=500)
 
