@@ -7,18 +7,8 @@ coverage <- function(df) {
     summarize(l = mean(truth < value), u = mean(truth <= value), .groups = "drop")
 }
 
-# get critical value of binomial test (used for consistency bands)
-get_cr <- function(sample_size, alpha, nominal_level, alternative = "less") {
-  if (alternative == "less") {
-    C <- 0
-    while (pbinom(C + 1, sample_size, alpha) < nominal_level) C <- C + 1
-  } else if (alternative == "greater") {
-    C <- sample_size
-    while (1 - pbinom(C - 1, sample_size, alpha) < nominal_level) C <- C - 1
-  }
-  return(C)
-}
-
+# resample groups
+# in our case dates - with multiple rows for different locations, models, etc.
 sample_n_groups = function(grouped_df, n, replace = FALSE) {
   groups_resampled <- grouped_df %>% 
     group_keys() %>% 
@@ -28,9 +18,57 @@ sample_n_groups = function(grouped_df, n, replace = FALSE) {
     right_join(groups_resampled, by = group_vars(grouped_df))
 }
 
+get_confidence_bands <- function(df, date_column, B = 100) {
+  coverage_df <- data.frame()
+
+  for (i in 1:B) {
+    df_resampled <- df %>%
+      group_by(!!date_column) %>%
+      sample_n_groups(n = n_distinct(group_keys(.)), replace = TRUE)
+    
+    coverage_sample <- coverage(df_resampled)
+    
+    coverage_df <- bind_rows(coverage_df, coverage_sample)
+  }
+  
+  # compute CIs from bootstrapped coverage
+  coverage_df %>%
+    group_by(model, quantile) %>%
+    summarize(l_5 = quantile(l, 0.05),
+              l_95 = quantile(l, 0.95),
+              l_25 = quantile(l, 0.25),
+              l_75 = quantile(l, 0.75),
+              u_5 = quantile(u, 0.05),
+              u_95 = quantile(u, 0.95),
+              u_25 = quantile(u, 0.25),
+              u_75 = quantile(u, 0.75),
+              .groups = "drop")
+}
+
+# for probability p, number of trials n, determine [q_low, q_up],
+# so that a Bin(n, p) random variable is with probability nom_level in this interval
+get_consistency_interval <- function(p, n, nom_level) {
+  q_low <- qbinom((1 - nom_level) / 2, n, p, lower.tail = TRUE)
+  q_up  <- qbinom((1 - nom_level) / 2, n, p, lower.tail = FALSE)
+  data.frame(q_low, q_up) %>% 
+    set_names(paste0(c("lower", "upper"), nom_level * 100))
+}
+
+# compute consistency bands for each quantile level
+get_consistency_bands <- function(df) {
+  df %>%
+    group_by(model, quantile) %>%
+    summarize(count = n(), .groups = "drop") %>%
+    mutate(get_consistency_interval(quantile, count, 0.9) / count,
+           get_consistency_interval(quantile, count, 0.5) / count) %>%
+    select(-count)
+}
+
+
+
 plot_coverage <- function(df, 
                           date_column = target_end_date, 
-                          B = 1000, 
+                          B = 100, 
                           type = "confidence", 
                           difference = FALSE) {
   
@@ -44,40 +82,15 @@ plot_coverage <- function(df,
           panel.grid.minor = element_line(size = 0.05))
   )
   
+  # compute coverage on full sample
+  coverage_full <- coverage(df)
+  
   if (type %in% c("confidence", "confidence2")) {
     date_column <- enquo(date_column)
-
-    # compute coverage on all bootstrap samples
-    coverage_df = data.frame() 
+    bands <- get_confidence_bands(df, date_column, B)
     
-    for (i in 1:B) {
-      df_resampled <- df %>%
-        group_by(!!date_column) %>%
-        sample_n_groups(n = n_distinct(group_keys(.)), replace = TRUE)
-      
-      coverage_sample <- coverage(df_resampled)
-      
-      coverage_df <- bind_rows(coverage_df, coverage_sample)
-    }
-    
-    # compute CIs from bootstrapped coverage
-    results <- coverage_df %>%
-      group_by(model, quantile) %>%
-      summarize(l_5 = quantile(l, 0.05),
-                l_95 = quantile(l, 0.95),
-                l_25 = quantile(l, 0.25),
-                l_75 = quantile(l, 0.75),
-                u_5 = quantile(u, 0.05),
-                u_95 = quantile(u, 0.95),
-                u_25 = quantile(u, 0.25),
-                u_75 = quantile(u, 0.75), 
-                .groups = "drop")
-    
-    # compute coverage on full sample
-    coverage_full <- coverage(df)
-    
-    results <- results %>%
-      left_join(coverage_full, by = c("model", "quantile"))
+    results <- coverage_full %>% 
+      left_join(bands, by = c("model", "quantile"))
     
     if (!difference) {
       g <- ggplot(results) +
@@ -93,13 +106,9 @@ plot_coverage <- function(df,
         my_theme +
         ylab("Coverage") +
         coord_fixed()
-    }
-    
-    else {
+    } else {
       results <- results %>% 
-        mutate_at(vars("l", "u", 
-                       "l_5", "l_25", "l_75", "l_95", 
-                       "u_5", "u_25","u_75", "u_95"), 
+        mutate_at(vars("l", "u", "l_5", "l_25", "l_75", "l_95", "u_5", "u_25","u_75", "u_95"), 
                   list(~ . - quantile))
       
       g <- ggplot(results) +
@@ -116,25 +125,10 @@ plot_coverage <- function(df,
         ylab("Coverage - Level") +
         theme(aspect.ratio = 1)
     }
-  }
-  
-  else if (type == "consistency") {
-    results <- coverage(df)
+  } else if (type == "consistency") {
+    bands <- get_consistency_bands(df)
     
-    consistency_bands <- df %>% 
-      group_by(model, quantile) %>% 
-      summarize(count = n(), 
-                .groups = "drop")
-    
-    consistency_bands <- consistency_bands %>% 
-      rowwise() %>% 
-      mutate(lower90 = get_cr(count, quantile, 0.05, "less")/count,
-             upper90 = get_cr(count, quantile, 0.05, "greater")/count,
-             lower50 = get_cr(count, quantile, 0.25, "less")/count,
-             upper50 = get_cr(count, quantile, 0.25, "greater")/count)
-    
-    results <- results %>% 
-      left_join(consistency_bands, by = c("model", "quantile"))
+    results <- coverage_full %>% left_join(bands, by = c("model", "quantile"))
     
     if (!difference) {
       g <- ggplot(results) +
@@ -146,9 +140,7 @@ plot_coverage <- function(df,
         my_theme +
         ylab("Coverage") +
         coord_fixed()
-    }
-    
-    else {
+    } else {
       results <- results %>% 
         mutate_at(vars("l", "u", "lower50", "upper50", "lower90", "upper90"), 
                   list(~ . - quantile))
@@ -232,29 +224,26 @@ df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
   mutate(value = floor(value))
 
 coverage2 <- function(df) {
-  df$l <- df$truth < floor(df$value)
-  df$u <- df$truth <= floor(df$value)
-  
   df %>%
     group_by(model, location_name, quantile) %>%
-    summarize(l = mean(l), u=mean(u), .groups = "drop")
+    summarize(l = mean(truth < value), u = mean(truth <= value), .groups = "drop")
+}
+
+get_consistency_bands2 <- function(df) {
+  df %>%
+    group_by(model, quantile) %>%
+    summarize(count = n(), .groups = "drop") %>%
+    mutate(get_consistency_interval(quantile, count, 0.9) / count,
+           get_consistency_interval(quantile, count, 0.5) / count) %>%
+    select(-count)
 }
 
 coverage_df <- coverage2(df)
 
-consistency_bands <- df %>% 
-  group_by(model, location_name, quantile) %>% 
-  summarize(count = n())
-
-consistency_bands <- consistency_bands %>% 
-  rowwise() %>% 
-  mutate(lower90 = get_cr(count, quantile, 0.05, "less")/count,
-         upper90 = get_cr(count, quantile, 0.05, "greater")/count,
-         lower50 = get_cr(count, quantile, 0.25, "less")/count,
-         upper50 = get_cr(count, quantile, 0.25, "greater")/count)
+bands <- get_consistency_bands2(df)
 
 coverage_df <- coverage_df %>% 
-  left_join(consistency_bands)
+  left_join(bands)
 
 ggplot(coverage_df) +
   facet_grid(location_name ~ model) +
