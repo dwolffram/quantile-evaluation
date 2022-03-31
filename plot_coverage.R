@@ -2,12 +2,9 @@ library(tidyverse)
 Sys.setlocale("LC_ALL", "C")
 
 coverage <- function(df) {
-  df$l <- df$truth < floor(df$value)
-  df$u <- df$truth <= floor(df$value)
-  
   df %>%
     group_by(model, quantile) %>%
-    summarize(l = mean(l), u = mean(u), .groups = "drop")
+    summarize(l = mean(truth < value), u = mean(truth <= value), .groups = "drop")
 }
 
 # get critical value of binomial test (used for consistency bands)
@@ -179,11 +176,10 @@ models <- c("KITmetricslab-select_ensemble", "COVIDhub-ensemble", "COVIDhub-base
 # National level
 
 df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
-  filter(location == "US")
-
-df <- df %>%
-  filter(target == "1 wk ahead inc death",
-         model %in% models)
+  filter(location == "US",
+         target == "1 wk ahead inc death",
+         model %in% models) %>% 
+  mutate(value = floor(value))
 
 plot_coverage(df, B=100, type="confidence2", difference=FALSE)
 ggsave("figures/national_coverage_confidence.pdf", width=160, height=70, unit="mm", device = "pdf", dpi=300)
@@ -194,11 +190,10 @@ ggsave("figures/national_coverage_consistency.pdf", width=160, height=70, unit="
 # State level
 
 df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
-  filter(location_name != "US")
-
-df <- df %>%
-  filter(target == "1 wk ahead inc death",
-         model %in% models)
+  filter(location_name != "US",
+         target == "1 wk ahead inc death",
+         model %in% models) %>% 
+  mutate(value = floor(value))
 
 plot_coverage(df, B=100, type="confidence", difference=FALSE)
 ggsave("figures/states_coverage.pdf", width=160, height=70, unit="mm", device = "pdf", dpi=300)
@@ -210,11 +205,10 @@ ggsave("figures/states_coverage_diff.pdf", width=160, height=70, unit="mm", devi
 # Vermont
 
 df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
-  filter(location_name == "Vermont")
-
-df <- df %>%
-  filter(target == "1 wk ahead inc death",
-         model %in% models)
+  filter(location_name == "Vermont",
+         target == "1 wk ahead inc death",
+         model %in% models) %>% 
+  mutate(value = floor(value))
 
 plot_coverage(df, B=100, type="confidence", difference=FALSE)
 ggsave("figures/Vermont_coverage_confidence.pdf", width=160, height=70, unit="mm", device = "pdf", dpi=300)
@@ -232,11 +226,10 @@ ggsave("figures/Vermont_coverage_consistency.pdf", width=160, height=70, unit="m
 models <- c("KITmetricslab-select_ensemble", "COVIDhub-ensemble", "COVIDhub-baseline")
 
 df <- read_csv("data/2022-01-03_df_processed.csv.gz", col_types = cols()) %>%
-  filter(location_name %in% c("Nebraska", "Vermont", "Florida"))
-
-df <- df %>%
-  filter(target == "1 wk ahead inc death",
-         model %in% models)
+  filter(location_name %in% c("Nebraska", "Vermont", "Florida"),
+         target == "1 wk ahead inc death",
+         model %in% models) %>% 
+  mutate(value = floor(value))
 
 coverage2 <- function(df) {
   df$l <- df$truth < floor(df$value)
