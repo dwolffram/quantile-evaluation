@@ -1,26 +1,23 @@
 library(tidyverse)
 Sys.setlocale("LC_ALL", "C")
 
-coverage <- function(df){
+coverage <- function(df) {
   df$l <- df$truth < floor(df$value)
   df$u <- df$truth <= floor(df$value)
   
-  df <- df %>%
+  df %>%
     group_by(model, quantile) %>%
-    summarize(l = mean(l), u=mean(u), .groups = "drop")
-  
-  return(df)
+    summarize(l = mean(l), u = mean(u), .groups = "drop")
 }
 
 # get critical value of binomial test (used for consistency bands)
-get_cr <- function(sample_size, alpha, nominal_level, alternative='less'){
-  if(alternative == 'less'){
+get_cr <- function(sample_size, alpha, nominal_level, alternative = "less") {
+  if (alternative == "less") {
     C <- 0
-    while(pbinom(C + 1, sample_size, alpha) < nominal_level) C <- C+1
-  } 
-  else if(alternative == 'greater'){
+    while (pbinom(C + 1, sample_size, alpha) < nominal_level) C <- C + 1
+  } else if (alternative == "greater") {
     C <- sample_size
-    while (1 - pbinom(C-1, sample_size, alpha) < nominal_level) C <- C -1
+    while (1 - pbinom(C - 1, sample_size, alpha) < nominal_level) C <- C - 1
   }
   return(C)
 }
@@ -34,26 +31,29 @@ sample_n_groups = function(grouped_df, n, replace = FALSE) {
     right_join(groups_resampled, by = group_vars(grouped_df))
 }
 
-plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "confidence", difference = FALSE){
+plot_coverage <- function(df, 
+                          date_column = target_end_date, 
+                          B = 1000, 
+                          type = "confidence", 
+                          difference = FALSE) {
   
   # some customizations used in all plots
   my_theme <- list(
     scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), labels = function(x) ifelse(x == 0, "0", x)),
     scale_y_continuous(labels = function(y) ifelse(y == 0, "0", y)),
     xlab("Quantile level"),
-    # ylab(NULL),
     theme_bw(base_size = 11),
     theme(panel.grid.major = element_line(size = 0.05), 
           panel.grid.minor = element_line(size = 0.05))
   )
   
-  if (type %in% c("confidence", "confidence2")){
+  if (type %in% c("confidence", "confidence2")) {
     date_column <- enquo(date_column)
 
     # compute coverage on all bootstrap samples
     coverage_df = data.frame() 
     
-    for(i in 1:B){
+    for (i in 1:B) {
       df_resampled <- df %>%
         group_by(!!date_column) %>%
         sample_n_groups(n = n_distinct(group_keys(.)), replace = TRUE)
@@ -82,7 +82,7 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "c
     results <- results %>%
       left_join(coverage_full, by = c("model", "quantile"))
     
-    if (!difference){
+    if (!difference) {
       g <- ggplot(results) +
         facet_wrap("model", ncol = 3) +
         geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), size = 0.2, linetype = "solid", colour = "grey70") +
@@ -98,7 +98,7 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "c
         coord_fixed()
     }
     
-    else{
+    else {
       results <- results %>% 
         mutate_at(vars("l", "u", 
                        "l_5", "l_25", "l_75", "l_95", 
@@ -116,12 +116,12 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "c
           geom_ribbon(aes(x = quantile, ymin = l_5, ymax = l_95), fill = "darkred", alpha = 0.2))} +
         geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
         my_theme +
-        ylab("Coverage - level") +
+        ylab("Coverage - Level") +
         theme(aspect.ratio = 1)
     }
   }
   
-  else if (type == "consistency"){
+  else if (type == "consistency") {
     results <- coverage(df)
     
     consistency_bands <- df %>% 
@@ -139,7 +139,7 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "c
     results <- results %>% 
       left_join(consistency_bands, by = c("model", "quantile"))
     
-    if (!difference){
+    if (!difference) {
       g <- ggplot(results) +
         facet_wrap("model", ncol = 3) +
         geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), size = 0.2, linetype = "solid", colour = "grey70")+
@@ -163,7 +163,7 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "c
         geom_ribbon(aes(x = quantile, ymin = lower90, ymax = upper90), fill = "skyblue3", alpha = 0.2) +
         geom_errorbar(aes(x=quantile, ymin = l, ymax = u), width = 0.0125, size = 0.3, colour = "black") +
         my_theme +
-        ylab("Coverage - level") +
+        ylab("Coverage - Level") +
         theme(aspect.ratio = 1)
     }
   }
@@ -238,15 +238,13 @@ df <- df %>%
   filter(target == "1 wk ahead inc death",
          model %in% models)
 
-coverage2 <- function(df){
+coverage2 <- function(df) {
   df$l <- df$truth < floor(df$value)
   df$u <- df$truth <= floor(df$value)
   
-  df <- df %>%
+  df %>%
     group_by(model, location_name, quantile) %>%
     summarize(l = mean(l), u=mean(u), .groups = "drop")
-  
-  return(df)
 }
 
 coverage_df <- coverage2(df)
