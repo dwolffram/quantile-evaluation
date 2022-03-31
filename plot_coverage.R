@@ -25,6 +25,15 @@ get_cr <- function(sample_size, alpha, nominal_level, alternative='less'){
   return(C)
 }
 
+sample_n_groups = function(grouped_df, n, replace = FALSE) {
+  groups_resampled <- grouped_df %>% 
+    group_keys() %>% 
+    slice_sample(n = n, replace = replace)
+  
+  grouped_df %>% 
+    right_join(groups_resampled, by = group_vars(grouped_df))
+}
+
 plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "confidence", difference = FALSE){
   
   # some customizations used in all plots
@@ -40,16 +49,14 @@ plot_coverage <- function(df, date_column = target_end_date, B = 1000, type = "c
   
   if (type %in% c("confidence", "confidence2")){
     date_column <- enquo(date_column)
-    dates <- df %>% distinct(!!date_column) %>% pull()
-    
+
     # compute coverage on all bootstrap samples
-    coverage_df = data.frame()  
+    coverage_df = data.frame() 
+    
     for(i in 1:B){
-      dates_resampled <- sample(dates, replace = TRUE)
-      
-      # simple filter doesn't work because the same date can occur multiple times
-      df_resampled <- lapply(dates_resampled, function(x){df %>% filter(target_end_date == x)}) %>%
-        bind_rows()
+      df_resampled <- df %>%
+        group_by(!!date_column) %>%
+        sample_n_groups(n = n_distinct(group_keys(.)), replace = TRUE)
       
       coverage_sample <- coverage(df_resampled)
       
