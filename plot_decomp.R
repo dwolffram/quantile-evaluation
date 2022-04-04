@@ -23,7 +23,7 @@ scores <- results %>%
 
 write.csv(scores, "data/2022-01-03_score_components_national.csv", row.names=FALSE)
 
-scores <- read.csv("data/2022-01-03_score_components_national.csv")
+scores <- read.csv("data/2022-01-03_score_components_states.csv")
 
 # adjust model names (to save space)
 scores$quantile <- as.factor(scores$quantile)
@@ -47,16 +47,16 @@ iso <- scores %>%
 
 # manually remove scores from isolines if there is overlap
 # iso$label[c(1, 2, 7, 10, 25, 28, 32, 54, 55, 56, 66)] <- NA
-iso$label[c(1, 3, 9, 21, 41, 47)] <- NA
+iso$label[c(1, 2, 6, 8, 21, 23, 41, 42, 44)] <- NA
 
 ggplot(data = scores) +
   facet_wrap('quantile', scales = "free", ncol = 3) +
   geom_abline(data = iso, aes(intercept = intercept, slope = slope), color = "lightgray", alpha = 0.5,
-              size = 0.2) +
+              size = 0.5) +
   geom_labelabline(data = iso, aes(intercept = intercept, slope = slope, label = label), color = "gray50",
-                   hjust = 0.85, size = 4*0.36, text_only = TRUE, boxcolour = NA, straight = TRUE) +
+                   hjust = 0.85, size = 7*0.36, text_only = TRUE, boxcolour = NA, straight = TRUE) +
   geom_point(aes(x = mcb, y = dsc, color = model), size = 0.4) +
-  geom_text_repel(aes(x = mcb, y = dsc, label = model), max.overlaps = NA, size = 6*0.36, nudge_x = 0.1,
+  geom_text_repel(aes(x = mcb, y = dsc, label = model), max.overlaps = NA, size = 8*0.36, nudge_x = 0.1,
                   direction = "both", segment.color = "transparent", box.padding = 0.1, force = 1, point.padding = 0) +
   xlab("MCB") +
   ylab("DSC") +
@@ -73,4 +73,4 @@ ggplot(data = scores) +
   ) + 
   scale_color_brewer(palette="Set1")
 
-# ggsave("figures/score_decomposition_national.pdf", width=180, height=70, unit="mm", device = "pdf", dpi=300)
+ggsave("figures/6_score_decomposition_states.pdf", width=160, height=70, unit="mm", device = "pdf", dpi=300)
