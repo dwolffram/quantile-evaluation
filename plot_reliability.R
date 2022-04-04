@@ -2,7 +2,7 @@ library(tidyverse)
 
 Sys.setlocale("LC_ALL", "C")
 
-reldiag = function(x, y, alpha = 0.5, n_resamples = 999, digits = 3, region_level = 0.9){
+reldiag = function(x, y, alpha = 0.5, n_resamples = 999, digits = 1, region_level = 0.9){
   
   require(isotone)
   pava = function(x,y){
@@ -41,6 +41,12 @@ reldiag = function(x, y, alpha = 0.5, n_resamples = 999, digits = 3, region_leve
   cmcb = s_rc_ucond - s_rc
   dsc = s_mg - s_rc
   unc = s_mg
+  
+  # The Score is exactly equal to uMCB + cMCB - DSC + UNC.
+  # However, when rounding the values there may be slight discrepancies between the rounded values.
+  # We avoid this for didactic reasons by computing the score from the rounded values.
+  s = sum(round(c(umcb,cmcb,-dsc,unc), digits))
+  
   
   # test: mean identification zero? (t-test)
   # v = identif(x,y)
@@ -131,7 +137,7 @@ target = "1 wk ahead inc death"
 quantile = 0.5
 n_resamples = 99
 
-plot_hist = TRUE # If FALSE, a scatterplot is included instead
+plot_hist = FALSE # If FALSE, a scatterplot is included instead
 inset_hist = FALSE # If FALSE, the histogram is plotted directly above the horizontal axis (as in the binary CORP reliability diagram)
 
 df <- df %>%
@@ -152,7 +158,7 @@ scores <- results %>%
   group_by(model) %>%
   distinct(across(score:pval_ucond)) %>%
   mutate(label = paste0(c("QS ", "uMCB ","cMCB ","DSC ","UNC "),
-                        round(c(score, umcb, cmcb, dsc, unc), digits = 1),
+                        round(c(score, umcb, cmcb, dsc, unc), digits = 2),
                         c("", paste0(" [p = ", round(pval_ucond, digits = 2),"]"), "", "", ""),
                         c("", "", paste0(" [p = ", round(pval_cond, digits = 2),"]"), "", ""),
                         collapse = "\n"))
@@ -208,11 +214,10 @@ ggsave("figures/rel_diag_hist_states2.pdf", width=160, height=70, unit="mm", dev
 ### MULTIPLE QUANTILES FOR EACH MODEL
 
 df <- read_csv("data/2022-01-03_df_processed.csv.gz") %>%
-  filter(location == "US") # states (!= "US") or national level (== "US")?
+  filter(location != "US") # states (!= "US") or national level (== "US")?
 
 models = c("COVIDhub-baseline", "COVIDhub-ensemble", "KITmetricslab-select_ensemble")
 target = "1 wk ahead inc death"
-quantiles = c(0.1, 0.3, 0.5, 0.7, 0.9)
 quantiles = c(0.25, 0.5, 0.75)
 
 plot_hist = FALSE # If FALSE, a scatterplot is included instead
@@ -234,18 +239,27 @@ results <- results %>%
   mutate_at(c("x_rc", "lower", "upper"), ~ replace(., .<0, 0))
 
 # summarize scores and create labels
+# scores <- results %>%
+#   group_by(model, quantile) %>%
+#   distinct(across(score:pval_ucond)) %>%
+#   mutate(label = paste0(c("bar(S)~", "uMCB~","cMCB~","DSC~","UNC~"),
+#                         round(c(score, umcb, cmcb, dsc, unc), digits = 1),
+#                         c("", paste0("~`[`", "~p~", "`=`~", format(round(pval_ucond, digits = 2), nsmall = 2),"~`]`"), "", "", ""),
+#                         c("", "", paste0("~`[`", "~p~", "`=`~", format(round(pval_cond, digits = 2), nsmall = 2),"~`]`"), "", ""),
+#                         collapse = " \n "))
+
 scores <- results %>%
   group_by(model, quantile) %>%
   distinct(across(score:pval_ucond)) %>%
-  mutate(label = paste0(c("QS ", "uMCB ","cMCB ","DSC ","UNC "),
-                        round(c(score, umcb, cmcb, dsc, unc), digits = 1),
-                        c("", paste0(" [p = ", round(pval_ucond, digits = 2),"]"), "", "", ""),
-                        c("", "", paste0(" [p = ", round(pval_cond, digits = 2),"]"), "", ""),
-                        collapse = "\n"))
+  mutate(label = paste0(c("\nuMCB ","cMCB ","DSC ","UNC "),
+                        format(round(c(umcb, cmcb, dsc, unc), digits = 1), nsmall = 1),
+                        c(paste0(" [p = ", format(round(pval_ucond, digits = 2), nsmall = 2),"]"), "", "", ""),
+                        c("", paste0(" [p = ", format(round(pval_cond, digits = 2), nsmall = 2),"]"), "", ""),
+                        collapse = " \n"))
 
 # root transformation
-# cols <- c("x", "y", "x_rc", "lower", "upper")
-# results[cols] <- sqrt(results[cols])
+cols <- c("x", "y", "x_rc", "lower", "upper")
+results[cols] <- sqrt(results[cols])
 
 # needed to ensure square facets with equal x and y limits
 facet_lims <- results %>%
@@ -255,7 +269,7 @@ facet_lims <- results %>%
 
 main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
   facet_grid(rows = vars(quantile), cols = vars(model)) +
-  {if(!plot_hist) geom_point(aes(x, y),  alpha = 0.3, size = 0.1)} +
+  {if(!plot_hist) geom_point(aes(x, y),  alpha = 0.1, size = 0.1)} +
   {if(plot_hist && !inset_hist) geom_histogram(mapping = aes(x = x,y = 0.2*max(facet_lims$mx)*after_stat(count/max(count))),
                                                bins = 20, boundary = 0, colour = "grey", fill = "grey90", size = 0.2)} +
   geom_abline(intercept = 0 , slope = 1, colour="grey70") +
@@ -269,8 +283,10 @@ main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
   geom_blank(data = facet_lims, aes(x = mn, y = mn)) +
   xlab("Forecast value") +
   ylab("Conditional quantile") +
+  geom_label(data = scores, mapping = aes(x = -Inf, y = Inf, label = sprintf("bar(S)~'%0.1f'",score)),
+             size = 6*0.36, hjust = 0, vjust = 1, label.size = NA, alpha=0, label.padding = unit(1, "lines"), parse = TRUE) +
   geom_label(data = scores, mapping = aes(x = -Inf, y = Inf, label = label),
-             size = 6*0.36, hjust = 0, vjust = 1, label.size = NA, alpha=0, label.padding = unit(1, "lines")) +
+             size = 6*0.36, hjust = 0, vjust = 1, label.size = NA, alpha=0, label.padding = unit(1, "lines"), parse = FALSE) +
   scale_x_continuous(guide = guide_axis(check.overlap = TRUE)) +
   theme_bw(base_size = 11) +
   # {if(plot_hist && !inset_hist) geom_histogram(mapping = aes(x = x,y = 0.2*max(facet_lims$mx)*after_stat(count/max(count))),
@@ -291,4 +307,5 @@ if(plot_hist && inset_hist){
 
 plot(main_plot)
 
-ggsave("figures/12_national_reliability_scatter2.pdf", width=160, height=200, unit="mm", device = "pdf", dpi=300)
+ggsave("figures/12_states_reliability.pdf", width=160, height=160, unit="mm", device = "pdf", dpi=300)
+ggsave("figures/4_national_reliability.pdf", width=160, height=160, unit="mm", device = "pdf", dpi=300)
