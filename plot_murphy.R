@@ -34,7 +34,7 @@ murphy_diagram <- function(df){
   
   scores <- scores %>% 
     group_by(quantile, model) %>% 
-    summarize(label = paste0(model, " (", round(mean_qs, digits = 1), ")", collapse = "\n"), 
+    summarize(label = paste0(model, " (", format(round(mean_qs, digits = 1), nsmall = 1), ")", collapse = "\n"), 
               .groups = "drop")
   
   
@@ -76,7 +76,7 @@ murphy_diagram <- function(df){
           panel.grid.major = element_line(size = 0.05), 
           panel.grid.minor = element_line(size = 0.05)) + 
     scale_color_brewer(palette="Set1") +
-    labs(color = "Model (quantile score)") +
+    labs(color = "Model (pinball loss)") +
     expand_limits(x = xmax, y = ymax)
   
   p2 <- p1 %+% xs$`0.5`  + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) + ylab(NULL) + xlab(expression(paste("Threshold ", theta))) 
@@ -110,16 +110,18 @@ df <- df %>%
          quantile %in% quantiles)
 
 # Shorten model names
-df$model <- str_replace(df$model, "COVIDhub-baseline", "Baseline")
-df$model <- as.character(lapply(strsplit(as.character(df$model), "-"), '[[', 1))
-df$model <- str_replace(df$model, "COVIDhub", "COVIDhub-ensemble")
-df$model <- as.factor(df$model)
-df$model <- fct_relevel(df$model, "Baseline", "COVIDhub-ensemble", "KITmetricslab")
+#df$model <- str_replace(df$model, "COVIDhub-baseline", "Baseline")
+#df$model <- as.character(lapply(strsplit(as.character(df$model), "-"), '[[', 1))
+#df$model <- str_replace(df$model, "COVIDhub", "COVIDhub-ensemble")
+#df$model <- as.factor(df$model)
+#df$model <- fct_relevel(df$model, "Baseline", "COVIDhub-ensemble", "KITmetricslab")
+df$model <- str_replace(df$model, "KITmetricslab-select_ensemble", "KITmetricslab")
+
 
 # Plot murphy diagram
 g <- murphy_diagram(df)
 
-ggsave("figures/states_murphy.pdf", plot=g, width=160, height=70, unit="mm", device = "pdf", dpi=300)
+ggsave("figures/5_states_murphy.pdf", plot=g, width=160, height=70, unit="mm", device = "pdf", dpi=300)
 
 
 ### OLD CODE
