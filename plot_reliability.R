@@ -17,7 +17,7 @@ reldiag = function(x, y, alpha = 0.5, n_resamples = 999, digits = 1, region_leve
     
     return(gpava(ranking,y,solver = weighted.fractile,p = alpha,ties = "secondary")$x)
   }
-  score = function(x, y) mean(2*(as.numeric(x >= y) - alpha)*(x-y))
+  score = function(x, y) mean((as.numeric(x >= y) - alpha)*(x-y))
   marg = function(x) quantile(x, alpha, type = 1)
   identif = function(x, y) as.numeric(x > y) - alpha
   score_label = "QS "
@@ -214,7 +214,7 @@ ggsave("figures/rel_diag_hist_states2.pdf", width=160, height=70, unit="mm", dev
 ### MULTIPLE QUANTILES FOR EACH MODEL
 
 df <- read_csv("data/2022-01-03_df_processed.csv.gz") %>%
-  filter(location != "US") # states (!= "US") or national level (== "US")?
+  filter(location == "US") # states (!= "US") or national level (== "US")?
 
 models = c("COVIDhub-baseline", "COVIDhub-ensemble", "KITmetricslab-select_ensemble")
 target = "1 wk ahead inc death"
@@ -252,14 +252,14 @@ scores <- results %>%
   group_by(model, quantile) %>%
   distinct(across(score:pval_ucond)) %>%
   mutate(label = paste0(c("\nuMCB ","cMCB ","DSC ","UNC "),
-                        format(round(c(umcb, cmcb, dsc, unc), digits = 1), nsmall = 1),
+                        format(round(c(umcb, cmcb, dsc, unc), digits = 1), nsmall = 1, trim = TRUE),
                         c(paste0(" [p = ", format(round(pval_ucond, digits = 2), nsmall = 2),"]"), "", "", ""),
                         c("", paste0(" [p = ", format(round(pval_cond, digits = 2), nsmall = 2),"]"), "", ""),
                         collapse = " \n"))
 
 # root transformation
-cols <- c("x", "y", "x_rc", "lower", "upper")
-results[cols] <- sqrt(results[cols])
+# cols <- c("x", "y", "x_rc", "lower", "upper")
+# results[cols] <- sqrt(results[cols])
 
 # needed to ensure square facets with equal x and y limits
 facet_lims <- results %>%
@@ -269,7 +269,7 @@ facet_lims <- results %>%
 
 main_plot <- ggplot(results, aes(x, x_rc, group=model)) +
   facet_grid(rows = vars(quantile), cols = vars(model)) +
-  {if(!plot_hist) geom_point(aes(x, y),  alpha = 0.1, size = 0.1)} +
+  {if(!plot_hist) geom_point(aes(x, y),  alpha = 0.3, size = 0.1)} +
   {if(plot_hist && !inset_hist) geom_histogram(mapping = aes(x = x,y = 0.2*max(facet_lims$mx)*after_stat(count/max(count))),
                                                bins = 20, boundary = 0, colour = "grey", fill = "grey90", size = 0.2)} +
   geom_abline(intercept = 0 , slope = 1, colour="grey70") +
@@ -307,5 +307,5 @@ if(plot_hist && inset_hist){
 
 plot(main_plot)
 
-ggsave("figures/12_states_reliability.pdf", width=160, height=160, unit="mm", device = "pdf", dpi=300)
+# ggsave("figures/12_states_reliability.pdf", width=160, height=160, unit="mm", device = "pdf", dpi=300)
 ggsave("figures/4_national_reliability.pdf", width=160, height=160, unit="mm", device = "pdf", dpi=300)
